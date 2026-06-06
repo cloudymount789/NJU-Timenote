@@ -17,55 +17,34 @@ class HomeScreen extends StatelessWidget {
     final nextTodo = state.todos.isNotEmpty ? state.todos.first : null;
 
     return AppGradientScaffold(
-      bottomBar: BottomQuickInput(
-        onSearch: () => Navigator.of(context).pushNamed(AppRoutes.todoSearch),
-        onInput: () => _showQuickInputSheet(context),
-      ),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+      child: Stack(
         children: [
-          StatusHeader(
-            trailing: IconButton(
-              key: const Key('home-settings-button'),
-              tooltip: '设置',
-              icon: const Icon(
-                Icons.settings_outlined,
-                size: 22,
-                color: AppColors.textSecondary,
-              ),
-              onPressed: () =>
-                  Navigator.of(context).pushNamed(AppRoutes.settings),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text('欢迎回来 👋', style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 4),
-          const Text(
-            '今天也要加油呀！💙',
-            style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 20),
-          _NextCourseCard(course: nextCourse),
-          const SizedBox(height: 14),
-          _NextTodoCard(todo: nextTodo),
-          const SizedBox(height: 14),
-          Row(
+          const _HomeTopGlow(),
+          ListView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    _MiniNoteCard(),
-                    const SizedBox(height: 12),
-                    _QuickPickCard(),
-                  ],
-                ),
+              const StatusHeader(),
+              const SizedBox(height: 16),
+              _HomeHeader(
+                onSettings: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.settings),
               ),
-              const SizedBox(width: 12),
-              Expanded(child: _HeatMapCard()),
+              const SizedBox(height: 32),
+              _NextCourseCard(course: nextCourse),
+              const SizedBox(height: 24),
+              _NextTodoCard(todo: nextTodo),
+              const SizedBox(height: 24),
+              _DdlCard(todos: state.deadlineTodos),
+              const SizedBox(height: 32),
+              _HomeInputBar(
+                onQuickPick: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.nextAction),
+                onInput: () => _showQuickInputSheet(context),
+                onSearch: () =>
+                    Navigator.of(context).pushNamed(AppRoutes.todoSearch),
+              ),
             ],
           ),
-          const SizedBox(height: 14),
-          _DdlCard(todos: state.deadlineTodos),
         ],
       ),
     );
@@ -88,6 +67,82 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+class _HomeTopGlow extends StatelessWidget {
+  const _HomeTopGlow();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 225,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFFE7F2FF),
+              Color(0xFFF1ECFF),
+              Color(0xFFFFF4FA),
+              Color(0x00FFFFFF),
+            ],
+            stops: [0, 0.42, 0.72, 1],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.onSettings});
+
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '欢迎回来 👋',
+                  style: Theme.of(context).textTheme.headlineLarge,
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  '今天也要加油呀！💙',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            key: const Key('home-settings-button'),
+            tooltip: '设置',
+            onPressed: onSettings,
+            icon: const Icon(
+              Icons.settings_outlined,
+              size: 22,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _NextCourseCard extends StatelessWidget {
   const _NextCourseCard({required this.course});
 
@@ -96,10 +151,11 @@ class _NextCourseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SoftCard(
+      padding: const EdgeInsets.all(20),
       onTap: () => Navigator.of(context).pushNamed(AppRoutes.timetable),
       child: Row(
         children: [
-          const CircleIcon(icon: Icons.school_outlined),
+          const CircleIcon(icon: Icons.school_outlined, size: 52),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -121,51 +177,52 @@ class _NextCourseCard extends StatelessWidget {
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        '进行中',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            '进行中',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 6),
                 Text(
                   course?.name ?? '高等数学 (第3-4节)',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 6),
-                Row(
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
                   children: [
-                    const Icon(
-                      Icons.location_on_outlined,
-                      size: 14,
-                      color: AppColors.textMuted,
+                    _MutedMeta(
+                      icon: Icons.location_on_outlined,
+                      label: course?.location ?? '教学楼 A201',
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      course?.location ?? '教学楼 A201',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(
-                      Icons.access_time,
-                      size: 14,
-                      color: AppColors.textMuted,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      course?.periodRange.label ?? '14:00 – 15:50',
-                      style: Theme.of(context).textTheme.bodySmall,
+                    _MutedMeta(
+                      icon: Icons.access_time,
+                      label: course?.periodRange.label ?? '14:00 – 15:50',
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted),
+          const SizedBox(width: 8),
+          const Icon(Icons.chevron_right, color: AppColors.border),
         ],
       ),
     );
@@ -180,10 +237,11 @@ class _NextTodoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SoftCard(
+      padding: const EdgeInsets.all(20),
       onTap: () => Navigator.of(context).pushNamed(AppRoutes.todos),
       child: Row(
         children: [
-          const CircleIcon(icon: Icons.assignment_outlined),
+          const CircleIcon(icon: Icons.assignment_outlined, size: 52),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -193,137 +251,21 @@ class _NextTodoCard extends StatelessWidget {
                   '下一件事',
                   style: TextStyle(color: AppColors.accent, fontSize: 13),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 6),
                 Text(
                   todo?.title ?? '完成数据结构实验报告',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  todo?.dueAt == null ? '暂无截止时间' : '截止：今天 23:59',
-                  style: Theme.of(context).textTheme.bodySmall,
+                _MutedMeta(
+                  icon: Icons.access_time,
+                  label: todo?.dueAt == null ? '暂无截止时间' : '截止：今天 23:59',
                 ),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textMuted),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniNoteCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          const Icon(Icons.edit_note, color: AppColors.accent),
           const SizedBox(width: 8),
-          const Expanded(
-            child: Text('随心记', style: TextStyle(fontWeight: FontWeight.w600)),
-          ),
-          IconButton(
-            tooltip: '新增随心记',
-            onPressed: () {},
-            icon: const Icon(Icons.add, size: 18, color: AppColors.accent),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickPickCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      onTap: () => Navigator.of(context).pushNamed(AppRoutes.nextAction),
-      padding: const EdgeInsets.all(14),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.auto_awesome, color: AppColors.accent),
-              SizedBox(width: 8),
-              Text('快速挑选', style: TextStyle(fontWeight: FontWeight.w600)),
-            ],
-          ),
-          SizedBox(height: 12),
-          Text(
-            '下一件事',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          Text(
-            '智能排序',
-            style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            child: CircleIcon(icon: Icons.chevron_right, size: 30),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeatMapCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final cells = List<int>.generate(35, (index) => (index * 7 + 3) % 5);
-    return SoftCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.local_fire_department_outlined,
-                color: AppColors.accent,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '本月热力图',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              Text(
-                '5月',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '看看你的努力分布',
-            style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 10),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
-            ),
-            itemCount: cells.length,
-            itemBuilder: (context, index) {
-              final opacity = 0.16 + cells[index] * 0.17;
-              return DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: opacity),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              );
-            },
-          ),
+          const Icon(Icons.chevron_right, color: AppColors.border),
         ],
       ),
     );
@@ -338,31 +280,54 @@ class _DdlCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SoftCard(
+      padding: const EdgeInsets.all(20),
       onTap: () => Navigator.of(context).pushNamed(AppRoutes.todos),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(Icons.notifications_none, color: AppColors.accent),
+              const CircleIcon(icon: Icons.notifications_none, size: 40),
               const SizedBox(width: 10),
-              const Text(
-                'DDL 提醒',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Text(
+                          'DDL 提醒',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${todos.length} 项进行中',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${todos.length} 项进行中',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const Spacer(),
               const Text(
                 '全部 >',
                 style: TextStyle(color: AppColors.accent, fontSize: 12),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          for (final todo in todos.take(2)) _DdlRow(todo: todo),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [for (final todo in todos.take(2)) _DdlRow(todo: todo)],
+            ),
+          ),
         ],
       ),
     );
@@ -378,14 +343,14 @@ class _DdlRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final urgent = todo.id == 'todo-1';
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           Container(
-            width: 7,
-            height: 7,
+            width: 8,
+            height: 8,
             decoration: BoxDecoration(
-              color: urgent ? AppColors.accent : const Color(0xFF16A34A),
+              color: urgent ? AppColors.accent : const Color(0xFF22C55E),
               shape: BoxShape.circle,
             ),
           ),
@@ -401,17 +366,20 @@ class _DdlRow extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   urgent ? '今天 23:59 截止' : '明天 18:00 截止',
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontSize: 11),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: urgent ? const Color(0xFFFFE7F1) : const Color(0xFFFFEAD6),
+              color: urgent ? const Color(0xFFFCE7F3) : const Color(0xFFFFEDD5),
               borderRadius: BorderRadius.circular(7),
             ),
             child: Text(
@@ -426,6 +394,103 @@ class _DdlRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HomeInputBar extends StatelessWidget {
+  const _HomeInputBar({
+    required this.onQuickPick,
+    required this.onInput,
+    required this.onSearch,
+  });
+
+  final VoidCallback onQuickPick;
+  final VoidCallback onInput;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    return SoftCard(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      child: Row(
+        children: [
+          Ink(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFF5F8FF),
+                  Color(0xFFF0F4FF),
+                  Color(0xFFF5F0FF),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              tooltip: '快速挑选',
+              onPressed: onQuickPick,
+              icon: const Icon(
+                Icons.auto_awesome,
+                size: 20,
+                color: Color(0xFF6B9FFF),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: InkWell(
+              onTap: onInput,
+              borderRadius: BorderRadius.circular(8),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  '智能一句话添加待办...',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          IconButton.filled(
+            tooltip: '待办搜索',
+            onPressed: onSearch,
+            style: IconButton.styleFrom(
+              fixedSize: const Size(40, 40),
+              backgroundColor: AppColors.accent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: const Icon(Icons.search, size: 20, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MutedMeta extends StatelessWidget {
+  const _MutedMeta({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: AppColors.textMuted),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12),
+        ),
+      ],
     );
   }
 }
