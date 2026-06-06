@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -27,11 +29,51 @@ class AppGradientScaffold extends StatelessWidget {
   }
 }
 
-class StatusHeader extends StatelessWidget {
+class StatusHeader extends StatefulWidget {
   const StatusHeader({this.leading, this.trailing, super.key});
 
   final Widget? leading;
   final Widget? trailing;
+
+  @override
+  State<StatusHeader> createState() => _StatusHeaderState();
+}
+
+class _StatusHeaderState extends State<StatusHeader> {
+  late DateTime _now;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _scheduleNextMinuteTick();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _scheduleNextMinuteTick() {
+    _timer?.cancel();
+    final nextMinute = DateTime(
+      _now.year,
+      _now.month,
+      _now.day,
+      _now.hour,
+      _now.minute + 1,
+    );
+    final delay = nextMinute.difference(DateTime.now());
+    _timer = Timer(delay.isNegative ? Duration.zero : delay, () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _now = DateTime.now());
+      _scheduleNextMinuteTick();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,13 +81,16 @@ class StatusHeader extends StatelessWidget {
       height: 34,
       child: Row(
         children: [
-          leading ??
-              const Text(
-                '9:41',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          widget.leading ??
+              Text(
+                _formatStatusTime(_now),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
           const Spacer(),
-          trailing ??
+          widget.trailing ??
               const Row(
                 children: [
                   Icon(Icons.signal_cellular_alt, size: 15),
@@ -58,6 +103,12 @@ class StatusHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatStatusTime(DateTime time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 }
 
