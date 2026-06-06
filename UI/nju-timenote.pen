@@ -9,6 +9,7 @@
       "name": "01 Home Page",
       "clip": true,
       "width": 390,
+      "height": 902,
       "fill": "#FFFFFF",
       "layout": "vertical",
       "children": [
@@ -199,13 +200,14 @@
           "id": "y7pgt8",
           "name": "Content",
           "width": "fill_container",
+          "height": "fill_container",
           "layout": "vertical",
-          "gap": 16,
+          "gap": 32,
           "padding": [
-            0,
-            20,
+            28,
             24,
-            20
+            40,
+            24
           ],
           "children": [
             {
@@ -213,6 +215,12 @@
               "id": "qhm9n",
               "name": "Header",
               "width": "fill_container",
+              "padding": [
+                12,
+                0,
+                20,
+                0
+              ],
               "justifyContent": "space_between",
               "children": [
                 {
@@ -220,7 +228,7 @@
                   "id": "NT4po",
                   "name": "Header Text",
                   "layout": "vertical",
-                  "gap": 6,
+                  "gap": 10,
                   "children": [
                     {
                       "type": "text",
@@ -229,17 +237,18 @@
                       "fill": "$foreground-primary",
                       "content": "欢迎回来 👋",
                       "fontFamily": "Noto Sans SC",
-                      "fontSize": 26,
-                      "fontWeight": "700"
+                      "fontSize": 28,
+                      "fontWeight": "700",
+                      "letterSpacing": -0.5
                     },
                     {
                       "type": "text",
                       "id": "glj0V",
                       "name": "Sub Greeting",
-                      "fill": "$foreground-secondary",
+                      "fill": "#6B7280",
                       "content": "今天也要加油呀！💙",
                       "fontFamily": "Noto Sans SC",
-                      "fontSize": 14,
+                      "fontSize": 15,
                       "fontWeight": "normal"
                     }
                   ]
@@ -273,7 +282,7 @@
               "name": "Next Class Card",
               "width": "fill_container",
               "fill": "$card-bg",
-              "cornerRadius": 12,
+              "cornerRadius": 16,
               "effect": [
                 {
                   "type": "shadow",
@@ -296,16 +305,16 @@
                   "blur": 8
                 }
               ],
-              "gap": 12,
-              "padding": 16,
+              "gap": 16,
+              "padding": 20,
               "alignItems": "center",
               "children": [
                 {
                   "type": "frame",
                   "id": "f1Iv6",
                   "name": "Class Icon Wrap",
-                  "width": 48,
-                  "height": 48,
+                  "width": 52,
+                  "height": 52,
                   "fill": "$surface-secondary",
                   "cornerRadius": 9999,
                   "justifyContent": "center",
@@ -315,8 +324,8 @@
                       "type": "icon_font",
                       "id": "t5lXP",
                       "name": "Graduation Icon",
-                      "width": 24,
-                      "height": 24,
+                      "width": 26,
+                      "height": 26,
                       "iconFontName": "graduation-cap",
                       "iconFontFamily": "lucide",
                       "fill": "$accent"
@@ -393,7 +402,7 @@
                       "fill": "$foreground-primary",
                       "content": "高等数学 (第3-4节)",
                       "fontFamily": "Noto Sans SC",
-                      "fontSize": 16,
+                      "fontSize": 17,
                       "fontWeight": "600"
                     },
                     {
@@ -483,7 +492,7 @@
               "name": "Next Task Card",
               "width": "fill_container",
               "fill": "$card-bg",
-              "cornerRadius": 12,
+              "cornerRadius": 16,
               "effect": [
                 {
                   "type": "shadow",
@@ -506,16 +515,16 @@
                   "blur": 8
                 }
               ],
-              "gap": 12,
-              "padding": 16,
+              "gap": 16,
+              "padding": 20,
               "alignItems": "center",
               "children": [
                 {
                   "type": "frame",
-                  "id": "PswvG",
+                  "id": "zMlAA",
                   "name": "Task Icon Wrap",
-                  "width": 48,
-                  "height": 48,
+                  "width": 52,
+                  "height": 52,
                   "fill": "$surface-secondary",
                   "cornerRadius": 9999,
                   "justifyContent": "center",
@@ -523,10 +532,10 @@
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "zekoe",
+                      "id": "SvtmA",
                       "name": "Task Icon",
-                      "width": 24,
-                      "height": 24,
+                      "width": 26,
+                      "height": 26,
                       "iconFontName": "clipboard-list",
                       "iconFontFamily": "lucide",
                       "fill": "$accent"
@@ -535,7 +544,7 @@
                 },
                 {
                   "type": "frame",
-                  "id": "GTNLc",
+                  "id": "Y2Q7wC",
                   "name": "Task Body",
                   "width": "fill_container",
                   "layout": "vertical",
@@ -543,7 +552,7 @@
                   "children": [
                     {
                       "type": "text",
-                      "id": "Y5mcC",
+                      "id": "DbkT4",
                       "name": "Task Label",
                       "fill": "$accent",
                       "content": "下一件事",
@@ -553,24 +562,24 @@
                     },
                     {
                       "type": "text",
-                      "id": "n8PhIE",
+                      "id": "ORyFh",
                       "name": "Task Title",
                       "fill": "$foreground-primary",
                       "content": "完成数据结构实验报告",
                       "fontFamily": "Noto Sans SC",
-                      "fontSize": 16,
+                      "fontSize": 17,
                       "fontWeight": "600"
                     },
                     {
                       "type": "frame",
-                      "id": "fKutu",
+                      "id": "L7onzH",
                       "name": "Task Detail",
                       "gap": 4,
                       "alignItems": "center",
                       "children": [
                         {
                           "type": "icon_font",
-                          "id": "n2A4f",
+                          "id": "zT5Sh",
                           "name": "Task Clock",
                           "width": 12,
                           "height": 12,
@@ -580,7 +589,7 @@
                         },
                         {
                           "type": "text",
-                          "id": "NSBlZ",
+                          "id": "urSXM",
                           "name": "Task Deadline",
                           "fill": "$foreground-muted",
                           "content": "截止：今天 23:59",
@@ -594,7 +603,7 @@
                 },
                 {
                   "type": "icon_font",
-                  "id": "yTB2z",
+                  "id": "Gcd17",
                   "name": "Task Chevron",
                   "width": 18,
                   "height": 18,
@@ -606,987 +615,11 @@
             },
             {
               "type": "frame",
-              "id": "k1N5k",
-              "name": "Middle Row",
-              "width": "fill_container",
-              "gap": 12,
-              "children": [
-                {
-                  "type": "frame",
-                  "id": "plCWV",
-                  "name": "Left Column",
-                  "width": "fill_container",
-                  "layout": "vertical",
-                  "gap": 12,
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "yYzx3",
-                      "name": "Quick Notes Card",
-                      "width": "fill_container",
-                      "fill": "$card-bg",
-                      "cornerRadius": 12,
-                      "effect": [
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#0062FF22",
-                          "offset": {
-                            "x": 0,
-                            "y": 6
-                          },
-                          "blur": 20
-                        },
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#00000014",
-                          "offset": {
-                            "x": 0,
-                            "y": 2
-                          },
-                          "blur": 8
-                        }
-                      ],
-                      "gap": 8,
-                      "padding": 14,
-                      "justifyContent": "space_between",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "j1SUM",
-                          "name": "Notes Header",
-                          "gap": 8,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "xvGjc",
-                              "name": "Notes Icon Wrap",
-                              "width": 32,
-                              "height": 32,
-                              "fill": "$surface-secondary",
-                              "cornerRadius": 9999,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon_font",
-                                  "id": "GFg29",
-                                  "name": "Notes Icon",
-                                  "width": 16,
-                                  "height": 16,
-                                  "iconFontName": "notebook-pen",
-                                  "iconFontFamily": "lucide",
-                                  "fill": "$accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "N3v9b",
-                              "name": "Notes Title",
-                              "fill": "$foreground-primary",
-                              "content": "随心记",
-                              "fontFamily": "Noto Sans SC",
-                              "fontSize": 14,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "wqrfL",
-                          "name": "Add Button",
-                          "width": 28,
-                          "height": 28,
-                          "fill": "$surface-secondary",
-                          "cornerRadius": 9999,
-                          "justifyContent": "center",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "icon_font",
-                              "id": "ENiNg",
-                              "name": "Add Icon",
-                              "width": 16,
-                              "height": 16,
-                              "iconFontName": "plus",
-                              "iconFontFamily": "lucide",
-                              "fill": "$accent"
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "pHG5C",
-                      "name": "Quick Pick Card",
-                      "width": "fill_container",
-                      "height": 122,
-                      "fill": "$card-bg",
-                      "cornerRadius": 12,
-                      "effect": [
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#0062FF22",
-                          "offset": {
-                            "x": 0,
-                            "y": 6
-                          },
-                          "blur": 20
-                        },
-                        {
-                          "type": "shadow",
-                          "shadowType": "outer",
-                          "color": "#00000014",
-                          "offset": {
-                            "x": 0,
-                            "y": 2
-                          },
-                          "blur": 8
-                        }
-                      ],
-                      "layout": "vertical",
-                      "gap": 8,
-                      "padding": 14,
-                      "justifyContent": "space_between",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "ucMYx",
-                          "name": "Pick Header",
-                          "width": "fill_container",
-                          "gap": 8,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "M5SorS",
-                              "name": "Pick Icon Wrap",
-                              "width": 32,
-                              "height": 32,
-                              "fill": "$surface-secondary",
-                              "cornerRadius": 9999,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon_font",
-                                  "id": "B01vJS",
-                                  "name": "Pick Icon",
-                                  "width": 16,
-                                  "height": 16,
-                                  "iconFontName": "sparkles",
-                                  "iconFontFamily": "lucide",
-                                  "fill": "$accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "text",
-                              "id": "A9gO2",
-                              "name": "Pick Title",
-                              "fill": "$foreground-primary",
-                              "content": "快速挑选",
-                              "fontFamily": "Noto Sans SC",
-                              "fontSize": 14,
-                              "fontWeight": "600"
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "et96h",
-                          "name": "Pick Subtitle",
-                          "fill": "$foreground-muted",
-                          "textGrowth": "fixed-width",
-                          "width": 99,
-                          "content": "下一件事\n智能推荐",
-                          "lineHeight": 1.4,
-                          "fontFamily": "Noto Sans SC",
-                          "fontSize": 11,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "FXUJF",
-                          "name": "Pick Footer",
-                          "width": "fill_container",
-                          "justifyContent": "end",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Xsp8T",
-                              "name": "Chevron Wrap",
-                              "width": 28,
-                              "height": 28,
-                              "fill": "$surface-secondary",
-                              "cornerRadius": 9999,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon_font",
-                                  "id": "aiIgJ",
-                                  "name": "Pick Chevron",
-                                  "width": 16,
-                                  "height": 16,
-                                  "iconFontName": "chevron-right",
-                                  "iconFontFamily": "lucide",
-                                  "fill": "$accent"
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "UP8Hz",
-                  "name": "Heatmap Card",
-                  "width": "fill_container",
-                  "height": 190,
-                  "fill": "$card-bg",
-                  "cornerRadius": 12,
-                  "effect": [
-                    {
-                      "type": "shadow",
-                      "shadowType": "outer",
-                      "color": "#0062FF22",
-                      "offset": {
-                        "x": 0,
-                        "y": 6
-                      },
-                      "blur": 20
-                    },
-                    {
-                      "type": "shadow",
-                      "shadowType": "outer",
-                      "color": "#00000014",
-                      "offset": {
-                        "x": 0,
-                        "y": 2
-                      },
-                      "blur": 8
-                    }
-                  ],
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": 14,
-                  "justifyContent": "space_between",
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "s1t4k7",
-                      "name": "Heatmap Header",
-                      "width": "fill_container",
-                      "justifyContent": "space_between",
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "fUSS1",
-                          "name": "Heatmap Title Group",
-                          "gap": 8,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Mo0XH",
-                              "name": "Heat Icon Wrap",
-                              "width": 32,
-                              "height": 32,
-                              "fill": "$surface-secondary",
-                              "cornerRadius": 9999,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "icon_font",
-                                  "id": "W6bKZ",
-                                  "name": "Flame Icon",
-                                  "width": 16,
-                                  "height": 16,
-                                  "iconFontName": "flame",
-                                  "iconFontFamily": "lucide",
-                                  "fill": "$accent"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "jXwLq",
-                              "name": "Heat Text Group",
-                              "layout": "vertical",
-                              "gap": 2,
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "AyFMk",
-                                  "name": "Heatmap Title",
-                                  "fill": "$foreground-primary",
-                                  "content": "本月热力图",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 14,
-                                  "fontWeight": "600"
-                                },
-                                {
-                                  "type": "text",
-                                  "id": "v9Rih",
-                                  "name": "Heatmap Subtitle",
-                                  "fill": "$foreground-muted",
-                                  "content": "看看你的努力分布",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 10,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "QUrwx",
-                          "name": "Month Label",
-                          "fill": "$foreground-muted",
-                          "content": "5月",
-                          "fontFamily": "Noto Sans SC",
-                          "fontSize": 11,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "oBEHf",
-                      "name": "Heatmap Calendar",
-                      "width": 130,
-                      "layout": "vertical",
-                      "gap": 4,
-                      "children": [
-                        {
-                          "type": "frame",
-                          "id": "BEtrt",
-                          "name": "Day Header",
-                          "gap": 3,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "Va5Cs",
-                              "name": "Day Col 一",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "KFsyf",
-                                  "name": "Day Label 一",
-                                  "fill": "$foreground-muted",
-                                  "content": "一",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "RsdJ6",
-                              "name": "Day Col 二",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "WSt4n",
-                                  "name": "Day Label 二",
-                                  "fill": "$foreground-muted",
-                                  "content": "二",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "kDXJx",
-                              "name": "Day Col 三",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "ohxOe",
-                                  "name": "Day Label 三",
-                                  "fill": "$foreground-muted",
-                                  "content": "三",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "PlnZO",
-                              "name": "Day Col 四",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "KDHQv",
-                                  "name": "Day Label 四",
-                                  "fill": "$foreground-muted",
-                                  "content": "四",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "n579v",
-                              "name": "Day Col 五",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "XH57J",
-                                  "name": "Day Label 五",
-                                  "fill": "$foreground-muted",
-                                  "content": "五",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "Y8QCa",
-                              "name": "Day Col 六",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "W0AaSl",
-                                  "name": "Day Label 六",
-                                  "fill": "$foreground-muted",
-                                  "content": "六",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "CJ7UQ",
-                              "name": "Day Col 日",
-                              "width": 16,
-                              "height": 16,
-                              "justifyContent": "center",
-                              "alignItems": "center",
-                              "children": [
-                                {
-                                  "type": "text",
-                                  "id": "W0TkAZ",
-                                  "name": "Day Label 日",
-                                  "fill": "$foreground-muted",
-                                  "content": "日",
-                                  "fontFamily": "Noto Sans SC",
-                                  "fontSize": 8,
-                                  "fontWeight": "normal"
-                                }
-                              ]
-                            }
-                          ]
-                        },
-                        {
-                          "type": "frame",
-                          "id": "z4ERv1",
-                          "name": "Calendar Grid",
-                          "layout": "vertical",
-                          "gap": 3,
-                          "children": [
-                            {
-                              "type": "frame",
-                              "id": "L1SxZK",
-                              "name": "Week 0",
-                              "gap": 3,
-                              "children": [
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "oAQqE",
-                                  "name": "Empty 0-0",
-                                  "fill": "#F7F8FA",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "HAYaN",
-                                  "name": "Empty 0-1",
-                                  "fill": "#F7F8FA",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "owkdw",
-                                  "name": "Empty 0-2",
-                                  "fill": "#F7F8FA",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "IZeWN",
-                                  "name": "Empty 0-3",
-                                  "fill": "#F7F8FA",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "VBmWi",
-                                  "name": "Day 1",
-                                  "fill": "#E8F0FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "xADwP",
-                                  "name": "Day 2",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "F2vf2",
-                                  "name": "Day 3",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "yYXgC",
-                              "name": "Week 1",
-                              "gap": 3,
-                              "children": [
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "VbkXC",
-                                  "name": "Day 4",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "rLg3R",
-                                  "name": "Day 5",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "AsmWr",
-                                  "name": "Day 6",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "QmOZ2",
-                                  "name": "Day 7",
-                                  "fill": "#E8F0FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "MvX5c",
-                                  "name": "Day 8",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "UMZn1",
-                                  "name": "Day 9",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "WOPOi",
-                                  "name": "Day 10",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "fvXMR",
-                              "name": "Week 2",
-                              "gap": 3,
-                              "children": [
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "UoNYA",
-                                  "name": "Day 11",
-                                  "fill": "#E8F0FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "xR3Dq",
-                                  "name": "Day 12",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "rtlH4",
-                                  "name": "Day 13",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "bGikX",
-                                  "name": "Day 14",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "ctokB",
-                                  "name": "Day 15",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "edqbw",
-                                  "name": "Day 16",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "G6cOoo",
-                                  "name": "Day 17",
-                                  "fill": "#E8F0FF",
-                                  "width": 16,
-                                  "height": 16
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "H4wbbZ",
-                              "name": "Week 3",
-                              "gap": 3,
-                              "children": [
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "tkYIy",
-                                  "name": "Day 18",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "jBcKk",
-                                  "name": "Day 19",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "gPt3R",
-                                  "name": "Day 20",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "Osz2L",
-                                  "name": "Day 21",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "R6ye7",
-                                  "name": "Day 22",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "oCh1U",
-                                  "name": "Day 23",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "ZlOMg",
-                                  "name": "Day 24",
-                                  "fill": "#E8F0FF",
-                                  "width": 16,
-                                  "height": 16
-                                }
-                              ]
-                            },
-                            {
-                              "type": "frame",
-                              "id": "bZr92",
-                              "name": "Week 4",
-                              "gap": 3,
-                              "children": [
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "J7Zppd",
-                                  "name": "Day 25",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "VpHFO",
-                                  "name": "Day 26",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "IH0A9",
-                                  "name": "Day 27",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "pmjq0",
-                                  "name": "Day 28",
-                                  "fill": "#8AB4FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "kBilF",
-                                  "name": "Day 29",
-                                  "fill": "#0062FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "gBtez",
-                                  "name": "Day 30",
-                                  "fill": "#E8F0FF",
-                                  "width": 16,
-                                  "height": 16
-                                },
-                                {
-                                  "type": "rectangle",
-                                  "cornerRadius": 6,
-                                  "id": "SMZDt",
-                                  "name": "Day 31",
-                                  "fill": "#C7DCFF",
-                                  "width": 16,
-                                  "height": 16
-                                }
-                              ]
-                            }
-                          ]
-                        }
-                      ]
-                    },
-                    {
-                      "type": "frame",
-                      "id": "YP5Gt",
-                      "name": "Heatmap Legend",
-                      "width": "fill_container",
-                      "gap": 4,
-                      "justifyContent": "end",
-                      "alignItems": "center",
-                      "children": [
-                        {
-                          "type": "text",
-                          "id": "dLijC",
-                          "name": "Less Label",
-                          "fill": "$foreground-muted",
-                          "content": "少",
-                          "fontFamily": "Noto Sans SC",
-                          "fontSize": 8,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "frame",
-                          "id": "l8vrby",
-                          "name": "Legend Squares",
-                          "gap": 2,
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 6,
-                              "id": "BDROU",
-                              "name": "Legend 0",
-                              "fill": "#E8F0FF",
-                              "width": 8,
-                              "height": 8
-                            },
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 6,
-                              "id": "Oyl41",
-                              "name": "Legend 1",
-                              "fill": "#C7DCFF",
-                              "width": 8,
-                              "height": 8
-                            },
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 6,
-                              "id": "MbZHS",
-                              "name": "Legend 2",
-                              "fill": "#8AB4FF",
-                              "width": 8,
-                              "height": 8
-                            },
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 6,
-                              "id": "uu3Tp",
-                              "name": "Legend 3",
-                              "fill": "#0062FF",
-                              "width": 8,
-                              "height": 8
-                            },
-                            {
-                              "type": "rectangle",
-                              "cornerRadius": 6,
-                              "id": "j6A3vX",
-                              "name": "Legend 4",
-                              "fill": "#0062FF",
-                              "width": 8,
-                              "height": 8
-                            }
-                          ]
-                        },
-                        {
-                          "type": "text",
-                          "id": "SUhTP",
-                          "name": "More Label",
-                          "fill": "$foreground-muted",
-                          "content": "多",
-                          "fontFamily": "Noto Sans SC",
-                          "fontSize": 8,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "frame",
               "id": "kueHh",
               "name": "DDL Reminder Card",
               "width": "fill_container",
               "fill": "$card-bg",
-              "cornerRadius": 12,
+              "cornerRadius": 16,
               "effect": [
                 {
                   "type": "shadow",
@@ -1610,8 +643,8 @@
                 }
               ],
               "layout": "vertical",
-              "gap": 12,
-              "padding": 16,
+              "gap": 16,
+              "padding": 20,
               "children": [
                 {
                   "type": "frame",
@@ -1724,7 +757,8 @@
                   "fill": "$surface-secondary",
                   "cornerRadius": 8,
                   "layout": "vertical",
-                  "padding": 4,
+                  "gap": 4,
+                  "padding": 8,
                   "children": [
                     {
                       "type": "frame",
@@ -1732,7 +766,7 @@
                       "name": "DDL Item 1",
                       "width": "fill_container",
                       "gap": 10,
-                      "padding": 12,
+                      "padding": 14,
                       "alignItems": "center",
                       "children": [
                         {
@@ -1804,7 +838,7 @@
                       "name": "DDL Item 2",
                       "width": "fill_container",
                       "gap": 10,
-                      "padding": 12,
+                      "padding": 14,
                       "alignItems": "center",
                       "children": [
                         {
@@ -1903,19 +937,19 @@
                   "blur": 8
                 }
               ],
-              "gap": 12,
+              "gap": 14,
               "padding": [
-                10,
-                14
+                14,
+                18
               ],
               "alignItems": "center",
               "children": [
                 {
                   "type": "frame",
                   "id": "RLOJd",
-                  "name": "Plus Button",
-                  "width": 36,
-                  "height": 36,
+                  "name": "Search Button",
+                  "width": 40,
+                  "height": 40,
                   "fill": "$accent",
                   "cornerRadius": 9999,
                   "justifyContent": "center",
@@ -1924,10 +958,10 @@
                     {
                       "type": "icon_font",
                       "id": "gr3k4",
-                      "name": "Plus Icon",
+                      "name": "Search Icon",
                       "width": 20,
                       "height": 20,
-                      "iconFontName": "plus",
+                      "iconFontName": "search",
                       "iconFontFamily": "lucide",
                       "fill": "#FFFFFF"
                     }
@@ -1942,7 +976,7 @@
                   "width": "fill_container",
                   "content": "智能一句话添加待办...",
                   "fontFamily": "Noto Sans SC",
-                  "fontSize": 14,
+                  "fontSize": 15,
                   "fontWeight": "normal"
                 },
                 {
@@ -1954,6 +988,125 @@
                   "iconFontName": "mic",
                   "iconFontFamily": "lucide",
                   "fill": "$foreground-primary"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "Sg46L",
+              "layoutPosition": "absolute",
+              "x": 302,
+              "y": 686,
+              "name": "Quick Pick FAB Wrap",
+              "width": 64,
+              "height": 70,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "pwVgy",
+                  "x": 2,
+                  "y": 2,
+                  "name": "AI Glow Halo",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "radial",
+                    "enabled": true,
+                    "rotation": 0,
+                    "size": {
+                      "width": 1,
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#D4E4FF55",
+                        "position": 0
+                      },
+                      {
+                        "color": "#E8F0FF22",
+                        "position": 0.6
+                      },
+                      {
+                        "color": "#E8F0FF00",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "width": 48,
+                  "height": 48,
+                  "effect": {
+                    "type": "blur",
+                    "radius": 10
+                  }
+                },
+                {
+                  "type": "frame",
+                  "id": "LZi8m",
+                  "x": 6,
+                  "y": 6,
+                  "name": "Quick Pick FAB",
+                  "width": 58,
+                  "height": 58,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 135,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#F5F8FF",
+                        "position": 0
+                      },
+                      {
+                        "color": "#F0F4FF",
+                        "position": 0.5
+                      },
+                      {
+                        "color": "#F5F0FF",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 9999,
+                  "effect": [
+                    {
+                      "type": "shadow",
+                      "shadowType": "outer",
+                      "color": "#0062FF18",
+                      "offset": {
+                        "x": 0,
+                        "y": 4
+                      },
+                      "blur": 16
+                    },
+                    {
+                      "type": "shadow",
+                      "shadowType": "outer",
+                      "color": "#0000000D",
+                      "offset": {
+                        "x": 0,
+                        "y": 1
+                      },
+                      "blur": 4
+                    }
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "g964vm",
+                      "name": "AI Sparkle Icon",
+                      "width": 30,
+                      "height": 29,
+                      "iconFontName": "sparkle",
+                      "iconFontFamily": "lucide",
+                      "fill": "#6B9FFF"
+                    }
+                  ]
                 }
               ]
             }
