@@ -946,107 +946,10 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "RLOJd",
-                  "name": "Search Button",
+                  "id": "lGvNy",
+                  "name": "Quick Pick Button",
                   "width": 40,
                   "height": 40,
-                  "fill": "$accent",
-                  "cornerRadius": 9999,
-                  "justifyContent": "center",
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "icon_font",
-                      "id": "gr3k4",
-                      "name": "Search Icon",
-                      "width": 20,
-                      "height": 20,
-                      "iconFontName": "search",
-                      "iconFontFamily": "lucide",
-                      "fill": "#FFFFFF"
-                    }
-                  ]
-                },
-                {
-                  "type": "text",
-                  "id": "Rrlhb",
-                  "name": "Input Placeholder",
-                  "fill": "$foreground-muted",
-                  "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "智能一句话添加待办...",
-                  "fontFamily": "Noto Sans SC",
-                  "fontSize": 15,
-                  "fontWeight": "normal"
-                },
-                {
-                  "type": "icon_font",
-                  "id": "b0rgxY",
-                  "name": "Mic Icon",
-                  "width": 22,
-                  "height": 22,
-                  "iconFontName": "mic",
-                  "iconFontFamily": "lucide",
-                  "fill": "$foreground-primary"
-                }
-              ]
-            },
-            {
-              "type": "frame",
-              "id": "Sg46L",
-              "layoutPosition": "absolute",
-              "x": 302,
-              "y": 686,
-              "name": "Quick Pick FAB Wrap",
-              "width": 64,
-              "height": 70,
-              "layout": "none",
-              "children": [
-                {
-                  "type": "ellipse",
-                  "id": "pwVgy",
-                  "x": 2,
-                  "y": 2,
-                  "name": "AI Glow Halo",
-                  "fill": {
-                    "type": "gradient",
-                    "gradientType": "radial",
-                    "enabled": true,
-                    "rotation": 0,
-                    "size": {
-                      "width": 1,
-                      "height": 1
-                    },
-                    "colors": [
-                      {
-                        "color": "#D4E4FF55",
-                        "position": 0
-                      },
-                      {
-                        "color": "#E8F0FF22",
-                        "position": 0.6
-                      },
-                      {
-                        "color": "#E8F0FF00",
-                        "position": 1
-                      }
-                    ]
-                  },
-                  "width": 48,
-                  "height": 48,
-                  "effect": {
-                    "type": "blur",
-                    "radius": 10
-                  }
-                },
-                {
-                  "type": "frame",
-                  "id": "LZi8m",
-                  "x": 6,
-                  "y": 6,
-                  "name": "Quick Pick FAB",
-                  "width": 58,
-                  "height": 58,
                   "fill": {
                     "type": "gradient",
                     "gradientType": "linear",
@@ -1071,40 +974,63 @@
                     ]
                   },
                   "cornerRadius": 9999,
-                  "effect": [
-                    {
-                      "type": "shadow",
-                      "shadowType": "outer",
-                      "color": "#0062FF18",
-                      "offset": {
-                        "x": 0,
-                        "y": 4
-                      },
-                      "blur": 16
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#0062FF18",
+                    "offset": {
+                      "x": 0,
+                      "y": 2
                     },
-                    {
-                      "type": "shadow",
-                      "shadowType": "outer",
-                      "color": "#0000000D",
-                      "offset": {
-                        "x": 0,
-                        "y": 1
-                      },
-                      "blur": 4
-                    }
-                  ],
+                    "blur": 8
+                  },
                   "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "icon_font",
-                      "id": "g964vm",
+                      "id": "yxNhO",
                       "name": "AI Sparkle Icon",
-                      "width": 30,
-                      "height": 29,
+                      "width": 20,
+                      "height": 20,
                       "iconFontName": "sparkle",
                       "iconFontFamily": "lucide",
                       "fill": "#6B9FFF"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "Rrlhb",
+                  "name": "Input Placeholder",
+                  "fill": "#9ca3afff",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "智能一句话添加待办...",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 15,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "RLOJd",
+                  "name": "Search Button",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "$accent",
+                  "cornerRadius": 9999,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "gr3k4",
+                      "name": "Search Icon",
+                      "width": 20,
+                      "height": 20,
+                      "iconFontName": "search",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
                     }
                   ]
                 }
