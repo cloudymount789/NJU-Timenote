@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
 import '../../app/routes.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/utils/date_formatters.dart';
 import '../../core/widgets/app_shell.dart';
-import '../../state/timenote_state.dart';
 import '../timetable/models/course.dart';
-import '../todos/models/todo_item.dart';
+import '../todos/domain/todo.dart';
+import '../todos/presentation/screens/todos_screen.dart';
+import '../todos/presentation/widgets/todo_widgets.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final state = TimenoteScope.of(context);
-    final nextCourse = state.courses.isNotEmpty ? state.courses.first : null;
-    final nextTodo = state.todos.isNotEmpty ? state.todos.first : null;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final courses = ref.watch(coursesControllerProvider).value ?? [];
+    final todosState = ref.watch(todosControllerProvider).value;
+    final todos = todosState?.todos ?? [];
+    final nextCourse = courses.isNotEmpty ? courses.first : null;
+    final nextTodo = todos.where((todo) => !todo.isDone).firstOrNull;
+    final deadlineTodos = todosState?.deadlineTodos ?? const <TodoItem>[];
 
     return AppGradientScaffold(
       child: Stack(
@@ -34,34 +41,28 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _NextTodoCard(todo: nextTodo),
               const SizedBox(height: 24),
-              _DdlCard(todos: state.deadlineTodos),
+              _DdlCard(
+                todos: deadlineTodos,
+                onTap: () async {
+                  await ref
+                      .read(todosControllerProvider.notifier)
+                      .setFilter(const TodoFilter(onlyDeadline: true));
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamed(AppRoutes.todos);
+                  }
+                },
+              ),
               const SizedBox(height: 32),
-              _HomeInputBar(
+              TodoBottomInputBar(
                 onQuickPick: () =>
                     Navigator.of(context).pushNamed(AppRoutes.nextAction),
-                onInput: () => _showQuickInputSheet(context),
+                onInput: () => showCreateTodoSheet(context, ref),
                 onSearch: () =>
                     Navigator.of(context).pushNamed(AppRoutes.todoSearch),
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  void _showQuickInputSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => const SizedBox(
-        height: 180,
-        child: Center(
-          child: Text(
-            'AI 智能添加待办将在后续版本开放',
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
-        ),
       ),
     );
   }
@@ -259,7 +260,9 @@ class _NextTodoCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 _MutedMeta(
                   icon: Icons.access_time,
-                  label: todo?.dueAt == null ? '暂无截止时间' : '截止：今天 23:59',
+                  label: todo?.deadlineAt == null
+                      ? '暂无截止时间'
+                      : '截止：${formatDateTimeShort(todo!.deadlineAt!)}',
                 ),
               ],
             ),
@@ -273,15 +276,16 @@ class _NextTodoCard extends StatelessWidget {
 }
 
 class _DdlCard extends StatelessWidget {
-  const _DdlCard({required this.todos});
+  const _DdlCard({required this.todos, required this.onTap});
 
   final List<TodoItem> todos;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return SoftCard(
       padding: const EdgeInsets.all(20),
-      onTap: () => Navigator.of(context).pushNamed(AppRoutes.todos),
+      onTap: onTap,
       child: Column(
         children: [
           Row(
@@ -341,7 +345,9 @@ class _DdlRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urgent = todo.id == 'todo-1';
+    final urgent =
+        todo.deadlineAt != null &&
+        todo.deadlineAt!.difference(DateTime(2026, 6, 19, 9, 41)).inHours < 24;
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -368,7 +374,9 @@ class _DdlRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  urgent ? '今天 23:59 截止' : '明天 18:00 截止',
+                  todo.deadlineAt == null
+                      ? '暂无截止时间'
+                      : '${formatDateTimeShort(todo.deadlineAt!)} 截止',
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(fontSize: 11),
@@ -391,81 +399,6 @@ class _DdlRow extends StatelessWidget {
                     : const Color(0xFFEA580C),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HomeInputBar extends StatelessWidget {
-  const _HomeInputBar({
-    required this.onQuickPick,
-    required this.onInput,
-    required this.onSearch,
-  });
-
-  final VoidCallback onQuickPick;
-  final VoidCallback onInput;
-  final VoidCallback onSearch;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftCard(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      child: Row(
-        children: [
-          Ink(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFF5F8FF),
-                  Color(0xFFF0F4FF),
-                  Color(0xFFF5F0FF),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              tooltip: '快速挑选',
-              onPressed: onQuickPick,
-              icon: const Icon(
-                Icons.auto_awesome,
-                size: 20,
-                color: Color(0xFF6B9FFF),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: InkWell(
-              onTap: onInput,
-              borderRadius: BorderRadius.circular(8),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  '智能一句话添加待办...',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 15),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          IconButton.filled(
-            tooltip: '待办搜索',
-            onPressed: onSearch,
-            style: IconButton.styleFrom(
-              fixedSize: const Size(40, 40),
-              backgroundColor: AppColors.accent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            icon: const Icon(Icons.search, size: 20, color: Colors.white),
           ),
         ],
       ),

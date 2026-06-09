@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:nju_timenote/app/app.dart';
 
 void main() {
   Future<void> pumpApp(WidgetTester tester) async {
-    await tester.pumpWidget(const TimenoteApp());
+    await tester.pumpWidget(const ProviderScope(child: TimenoteApp()));
     await tester.pumpAndSettle();
   }
 
@@ -87,13 +88,28 @@ void main() {
     expect(find.text('软件工程'), findsOneWidget);
   });
 
-  testWidgets('placeholder todo routes are reachable', (tester) async {
+  testWidgets('todo list, search, and detail routes are reachable', (
+    tester,
+  ) async {
     await pumpApp(tester);
 
     await tester.tap(find.text('下一件事').first);
     await tester.pumpAndSettle();
 
     expect(find.text('待办'), findsAtLeastNWidgets(1));
-    expect(find.textContaining('后续版本'), findsOneWidget);
+    expect(find.text('高等数学习题课'), findsOneWidget);
+    expect(find.text('数据结构实验报告'), findsOneWidget);
+
+    await tester.tap(find.text('数据结构实验报告'));
+    await tester.pumpAndSettle();
+    expect(find.text('待办详情'), findsOneWidget);
+    expect(find.text('有截止时间'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('返回').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('待办搜索').last);
+    await tester.pumpAndSettle();
+    expect(find.text('待办搜索'), findsOneWidget);
+    expect(find.text('历史记录'), findsOneWidget);
   });
 }

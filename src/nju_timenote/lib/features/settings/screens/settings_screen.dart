@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_shell.dart';
-import '../../../state/timenote_state.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final settings = TimenoteScope.of(context).settings;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(semesterSettingsProvider).value;
     return AppGradientScaffold(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),

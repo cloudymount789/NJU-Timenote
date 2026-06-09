@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_shell.dart';
-import '../../../state/timenote_state.dart';
 
-class ScreenshotCourseScreen extends StatefulWidget {
+class ScreenshotCourseScreen extends ConsumerStatefulWidget {
   const ScreenshotCourseScreen({super.key});
 
   @override
-  State<ScreenshotCourseScreen> createState() => _ScreenshotCourseScreenState();
+  ConsumerState<ScreenshotCourseScreen> createState() =>
+      _ScreenshotCourseScreenState();
 }
 
-class _ScreenshotCourseScreenState extends State<ScreenshotCourseScreen> {
+class _ScreenshotCourseScreenState
+    extends ConsumerState<ScreenshotCourseScreen> {
   bool _isImporting = false;
   bool _hasSelectedMockImage = false;
 
@@ -124,8 +127,9 @@ class _ScreenshotCourseScreenState extends State<ScreenshotCourseScreen> {
       _hasSelectedMockImage = true;
       _isImporting = true;
     });
-    final state = TimenoteScope.of(context);
-    await state.importCoursesFromScreenshot();
+    await ref
+        .read(coursesControllerProvider.notifier)
+        .importCoursesFromScreenshot();
     if (!mounted) {
       return;
     }

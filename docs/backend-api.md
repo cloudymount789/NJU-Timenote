@@ -55,14 +55,24 @@ Error response:
 {
   "id": "todo-1",
   "title": "数据结构实验报告",
-  "note": "实验三",
-  "dueAt": "2026-04-09T23:59:00+08:00",
+  "content": "完成实验三并提交到教学网",
+  "location": "线上提交",
+  "kind": "deadline",
+  "startAt": null,
+  "endAt": null,
+  "deadlineAt": "2026-06-19T23:59:00+08:00",
+  "priority": 4.5,
+  "tags": ["作业", "考试"],
+  "repeatRule": "once",
   "status": "open",
-  "hasDeadline": true,
   "createdAt": "2026-04-09T09:41:00+08:00",
   "updatedAt": "2026-04-09T09:41:00+08:00"
 }
 ```
+
+`kind` values: `duration`, `deadline`, `normal`.
+
+`repeatRule` values: `once`, `daily`, `weekly`.
 
 `status` values: `open`, `done`.
 
@@ -212,8 +222,11 @@ Returns todo items.
 
 Optional filters:
 
-- `hasDeadline=true`
-- `status=open`
+- `onlyDeadline=true`
+- `date=2026-06-19`
+- `kind=duration,deadline,normal`
+- `status=open,done`
+- `tag=作业,考试`
 
 Response:
 
@@ -223,10 +236,16 @@ Response:
     {
       "id": "todo-1",
       "title": "数据结构实验报告",
-      "note": "实验三",
-      "dueAt": "2026-04-09T23:59:00+08:00",
+      "content": "完成实验三并提交到教学网",
+      "location": "线上提交",
+      "kind": "deadline",
+      "startAt": null,
+      "endAt": null,
+      "deadlineAt": "2026-06-19T23:59:00+08:00",
+      "priority": 4.5,
+      "tags": ["作业", "考试"],
+      "repeatRule": "once",
       "status": "open",
-      "hasDeadline": true,
       "createdAt": "2026-04-09T09:41:00+08:00",
       "updatedAt": "2026-04-09T09:41:00+08:00"
     }
@@ -234,11 +253,162 @@ Response:
 }
 ```
 
+### POST `/todos`
+
+Creates a todo.
+
+Request:
+
+```json
+{
+  "title": "整理课堂笔记",
+  "content": "把今天三节课的重点整理成思维导图",
+  "location": "图书馆",
+  "kind": "normal",
+  "startAt": null,
+  "endAt": null,
+  "deadlineAt": null,
+  "priority": 3.5,
+  "tags": ["学习", "作业"],
+  "repeatRule": "once"
+}
+```
+
+Response: `201 Created`
+
+```json
+{ "data": { "...": "TodoItem" } }
+```
+
+### PATCH `/todos/{todoId}`
+
+Updates editable fields on a todo. Omitted fields remain unchanged.
+
+Response:
+
+```json
+{ "data": { "...": "TodoItem" } }
+```
+
+### DELETE `/todos/{todoId}`
+
+Deletes one todo permanently.
+
+Response: `204 No Content`
+
+### POST `/todos/{todoId}/complete`
+
+Marks a todo as done.
+
+Response:
+
+```json
+{ "data": { "...": "TodoItem" } }
+```
+
+### POST `/todos/batch/delete`
+
+Request:
+
+```json
+{ "todoIds": ["todo-1", "todo-2"] }
+```
+
+Response: `204 No Content`
+
+### POST `/todos/batch/complete`
+
+Marks selected todos as done. Duration todos are ignored by design.
+
+Request:
+
+```json
+{ "todoIds": ["todo-1", "todo-2"] }
+```
+
+Response:
+
+```json
+{ "data": { "completedIds": ["todo-2"], "skippedIds": ["todo-1"] } }
+```
+
 ### GET `/todos/search?q=数据结构`
 
-Searches todo titles and notes.
+Searches todo titles, content, location, and tags. Matching is case-insensitive.
 
 Response uses the same shape as `GET /todos`.
+
+### GET `/todo-tags`
+
+Returns available tags.
+
+```json
+{ "data": ["考试", "作业", "讲座", "会议", "生活", "学习"] }
+```
+
+### POST `/todo-tags`
+
+Request:
+
+```json
+{ "name": "复习" }
+```
+
+Response: `201 Created`
+
+```json
+{ "data": { "name": "复习" } }
+```
+
+### POST `/todos/recommendations`
+
+Returns recommended todo candidates for the "next action" flow.
+
+Request:
+
+```json
+{ "mood": 52, "willingness": 68, "anxiety": 35 }
+```
+
+Response:
+
+```json
+{
+  "data": [
+    {
+      "section": "不得不做的事",
+      "title": "数据结构实验报告",
+      "reason": "虽然你现在可能不是很想做事情，但是ddl马上要到啦，不妨试着从简单的一步先开始吧？",
+      "todoId": "todo-1",
+      "canAdd": false
+    }
+  ]
+}
+```
+
+### POST `/todos/goal-splits`
+
+Creates multiple deadline todos from a manually split goal.
+
+Request:
+
+```json
+{
+  "title": "高数期末复习",
+  "note": "复习范围：第1-8章",
+  "finalDeadline": "2026-06-25T23:59:00+08:00",
+  "subtasks": [
+    { "title": "整理第一章笔记", "plannedDate": "2026-06-19" },
+    { "title": "完成习题 1-20", "plannedDate": "2026-06-20" }
+  ]
+}
+```
+
+Response: `201 Created`
+
+```json
+{ "data": [{ "...": "TodoItem" }] }
+```
 
 ## Settings And Data
 
@@ -306,7 +476,18 @@ Response:
 | `CourseRepository` | `addCourse(draft)` | `POST /courses` |
 | `CourseRepository` | `deleteCourse(courseId)` | `DELETE /courses/{courseId}` |
 | `CourseRepository` | `importCoursesFromScreenshot()` | `POST /courses/imports/screenshot` |
-| `TodoRepository` | `fetchTodos(hasDeadline, query)` | `GET /todos`, `GET /todos/search` |
+| `TodoRepository` | `fetchTodos(filter)` | `GET /todos` |
+| `TodoRepository` | `searchTodos(query)` | `GET /todos/search?q={query}` |
+| `TodoRepository` | `createTodo(draft)` | `POST /todos` |
+| `TodoRepository` | `updateTodo(todoId, patch)` | `PATCH /todos/{todoId}` |
+| `TodoRepository` | `deleteTodo(todoId)` | `DELETE /todos/{todoId}` |
+| `TodoRepository` | `completeTodo(todoId)` | `POST /todos/{todoId}/complete` |
+| `TodoRepository` | `batchDelete(todoIds)` | `POST /todos/batch/delete` |
+| `TodoRepository` | `batchComplete(todoIds)` | `POST /todos/batch/complete` |
+| `TodoRepository` | `fetchTags()` | `GET /todo-tags` |
+| `TodoRepository` | `addTag(name)` | `POST /todo-tags` |
+| `TodoRepository` | `recommendTodos(input)` | `POST /todos/recommendations` |
+| `TodoRepository` | `createGoalSplitTodos(draft)` | `POST /todos/goal-splits` |
 | `SettingsRepository` | `fetchSemesterSettings()` | `GET /settings/semester`, `GET /settings/periods` |
 | `SettingsRepository` | `backup()` | `POST /settings/backup` |
 | `SettingsRepository` | `exportData()` | `POST /exports` |

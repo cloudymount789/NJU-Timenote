@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_shell.dart';
-import '../../../state/timenote_state.dart';
 import '../models/course.dart';
 
-class ManualCourseScreen extends StatefulWidget {
+class ManualCourseScreen extends ConsumerStatefulWidget {
   const ManualCourseScreen({super.key});
 
   @override
-  State<ManualCourseScreen> createState() => _ManualCourseScreenState();
+  ConsumerState<ManualCourseScreen> createState() => _ManualCourseScreenState();
 }
 
-class _ManualCourseScreenState extends State<ManualCourseScreen> {
+class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _teacherController = TextEditingController();
@@ -186,21 +187,22 @@ class _ManualCourseScreenState extends State<ManualCourseScreen> {
       return;
     }
     setState(() => _isSaving = true);
-    final state = TimenoteScope.of(context);
-    await state.addCourse(
-      CourseDraft(
-        name: _nameController.text.trim(),
-        teacher: _teacherController.text.trim(),
-        location: _locationController.text.trim(),
-        note: _noteController.text.trim(),
-        dayOfWeek: _dayOfWeek,
-        startPeriod: _startPeriod,
-        endPeriod: _endPeriod,
-        weekRule: _weekRule,
-        startWeek: _startWeek,
-        endWeek: _endWeek,
-      ),
-    );
+    await ref
+        .read(coursesControllerProvider.notifier)
+        .addCourse(
+          CourseDraft(
+            name: _nameController.text.trim(),
+            teacher: _teacherController.text.trim(),
+            location: _locationController.text.trim(),
+            note: _noteController.text.trim(),
+            dayOfWeek: _dayOfWeek,
+            startPeriod: _startPeriod,
+            endPeriod: _endPeriod,
+            weekRule: _weekRule,
+            startWeek: _startWeek,
+            endWeek: _endWeek,
+          ),
+        );
     if (!mounted) {
       return;
     }

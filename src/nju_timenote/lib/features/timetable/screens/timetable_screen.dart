@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_shell.dart';
-import '../../../state/timenote_state.dart';
 import '../../settings/models/settings.dart';
 import '../models/course.dart';
 import '../widgets/timetable_grid.dart';
 
-class TimetableScreen extends StatelessWidget {
+class TimetableScreen extends ConsumerWidget {
   const TimetableScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final state = TimenoteScope.of(context);
-    final periods = state.settings?.periods ?? _fallbackPeriods;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final courses = ref.watch(coursesControllerProvider).value ?? [];
+    final settings = ref.watch(semesterSettingsProvider).value;
+    final periods = settings?.periods ?? _fallbackPeriods;
 
     return AppGradientScaffold(
       child: Column(
@@ -56,10 +58,10 @@ class TimetableScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: TimetableGrid(
-                        courses: state.courses,
+                        courses: courses,
                         periods: periods,
                         onCourseLongPress: (course) =>
-                            _confirmDelete(context, course),
+                            _confirmDelete(context, ref, course),
                       ),
                     ),
                   ),
@@ -72,8 +74,11 @@ class TimetableScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, Course course) async {
-    final state = TimenoteScope.of(context);
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    Course course,
+  ) async {
     final shouldDelete = await showDialog<bool>(
       context: context,
       barrierDismissible: true,
@@ -94,7 +99,9 @@ class TimetableScreen extends StatelessWidget {
       ),
     );
     if (shouldDelete == true && context.mounted) {
-      await state.deleteCourse(course.id);
+      await ref
+          .read(coursesControllerProvider.notifier)
+          .deleteCourse(course.id);
     }
   }
 }
