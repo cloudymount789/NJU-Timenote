@@ -15,7 +15,6 @@ class SettingsScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         children: [
-          const StatusHeader(),
           PageTitleBar(title: '设置', onBack: () => Navigator.of(context).pop()),
           const SizedBox(height: 12),
           const _SectionTitle('课表与作息'),

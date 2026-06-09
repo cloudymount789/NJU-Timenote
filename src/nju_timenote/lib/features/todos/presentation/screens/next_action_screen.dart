@@ -26,7 +26,6 @@ class _NextActionScreenState extends State<NextActionScreen> {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: Column(
           children: [
-            const StatusHeader(),
             const PageTitleBar(title: '下一件事'),
             const SizedBox(height: 70),
             const CircleIcon(icon: Icons.psychology_alt_outlined, size: 76),
@@ -97,7 +96,6 @@ class _NextRecommendationsScreenState
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: Column(
           children: [
-            const StatusHeader(),
             PageTitleBar(
               title: '推荐待办',
               trailing: IconButton(

@@ -43,7 +43,6 @@ class _GoalSplitSetupScreenState extends State<GoalSplitSetupScreen> {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: Column(
           children: [
-            const StatusHeader(),
             const PageTitleBar(title: '大目标拆分'),
             const _StepIndicator('步骤 1/3 · 设定大目标'),
             Expanded(
@@ -140,7 +139,6 @@ class _GoalSplitBreakdownScreenState extends State<GoalSplitBreakdownScreen> {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: Column(
           children: [
-            const StatusHeader(),
             const PageTitleBar(title: '拆分小目标'),
             const _StepIndicator('步骤 2/3 · 拆分小目标'),
             Expanded(
@@ -278,7 +276,6 @@ class GoalSplitReviewScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: Column(
           children: [
-            const StatusHeader(),
             const PageTitleBar(title: '大目标拆分'),
             const _StepIndicator('步骤 3/3 · 确认生成'),
             Expanded(

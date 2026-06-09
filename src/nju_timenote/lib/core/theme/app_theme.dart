@@ -11,6 +11,12 @@ class AppColors {
   static const cardShadow = Color(0x1A0F4C81);
 }
 
+class AppRadii {
+  static const card = 14.0;
+  static const control = 12.0;
+  static const sheet = 18.0;
+}
+
 ThemeData buildTimenoteTheme() {
   final colorScheme = ColorScheme.fromSeed(
     seedColor: AppColors.accent,
@@ -49,7 +55,9 @@ ThemeData buildTimenoteTheme() {
         backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(52),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.control),
+        ),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
@@ -62,7 +70,7 @@ ThemeData buildTimenoteTheme() {
 BoxDecoration softCardDecoration({Color color = Colors.white}) {
   return BoxDecoration(
     color: color,
-    borderRadius: BorderRadius.circular(8),
+    borderRadius: BorderRadius.circular(AppRadii.card),
     boxShadow: const [
       BoxShadow(
         color: AppColors.cardShadow,

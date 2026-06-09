@@ -15,7 +15,6 @@ class AddCourseEntryScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const StatusHeader(),
             PageTitleBar(
               title: '添加课表',
               onBack: () => Navigator.of(context).pop(),

@@ -184,7 +184,9 @@ class _GridBackground extends StatelessWidget {
                               color: AppColors.accent,
                               width: 1.4,
                             ),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(
+                              AppRadii.control,
+                            ),
                           )
                         : null,
                     child: FittedBox(
@@ -306,9 +308,9 @@ class _CourseBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: _courseColor(course.colorKey),
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadii.control),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadii.control),
         onLongPress: onLongPress,
         child: LayoutBuilder(
           builder: (context, constraints) {

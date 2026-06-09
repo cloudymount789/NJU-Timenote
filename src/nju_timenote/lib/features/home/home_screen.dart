@@ -30,7 +30,6 @@ class HomeScreen extends ConsumerWidget {
           ListView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             children: [
-              const StatusHeader(),
               const SizedBox(height: 16),
               _HomeHeader(
                 onSettings: () =>
@@ -176,7 +175,7 @@ class _NextCourseCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadii.control),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -326,7 +325,7 @@ class _DdlCard extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadii.control),
             ),
             child: Column(
               children: [for (final todo in todos.take(2)) _DdlRow(todo: todo)],
@@ -388,7 +387,7 @@ class _DdlRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: urgent ? const Color(0xFFFCE7F3) : const Color(0xFFFFEDD5),
-              borderRadius: BorderRadius.circular(7),
+              borderRadius: BorderRadius.circular(AppRadii.control),
             ),
             child: Text(
               urgent ? '即将截止' : '1天后截止',

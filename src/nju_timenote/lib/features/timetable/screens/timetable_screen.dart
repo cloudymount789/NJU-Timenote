@@ -25,7 +25,6 @@ class TimetableScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
             child: Column(
               children: [
-                const StatusHeader(),
                 PageTitleBar(
                   title: '我的课表',
                   trailing: IconButton.filled(
@@ -48,7 +47,7 @@ class TimetableScreen extends ConsumerWidget {
               margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadii.card),
               ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,

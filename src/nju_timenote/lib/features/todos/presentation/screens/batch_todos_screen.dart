@@ -32,7 +32,6 @@ class _BatchTodosScreenState extends ConsumerState<BatchTodosScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Column(
               children: [
-                const StatusHeader(),
                 PageTitleBar(
                   title: '批量操作',
                   trailing: TextButton(

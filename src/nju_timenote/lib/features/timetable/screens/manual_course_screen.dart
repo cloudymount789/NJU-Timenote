@@ -47,7 +47,6 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             child: Column(
               children: [
-                const StatusHeader(),
                 PageTitleBar(
                   title: '添加课程',
                   onBack: () => Navigator.of(context).pop(),

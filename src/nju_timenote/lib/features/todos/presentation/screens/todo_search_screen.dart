@@ -49,7 +49,6 @@ class _TodoSearchScreenState extends ConsumerState<TodoSearchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const StatusHeader(),
               const PageTitleBar(title: '待办搜索'),
               const SizedBox(height: 18),
               _SearchRow(

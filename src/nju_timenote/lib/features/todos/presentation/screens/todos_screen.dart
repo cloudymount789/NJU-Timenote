@@ -24,7 +24,6 @@ class TodosScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
           child: Column(
             children: [
-              const StatusHeader(),
               PageTitleBar(
                 title: '待办',
                 trailing: Row(
@@ -132,7 +131,9 @@ class _FilterDrawerState extends ConsumerState<_FilterDrawer> {
         padding: const EdgeInsets.fromLTRB(20, 62, 20, 24),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
+          borderRadius: BorderRadius.horizontal(
+            left: Radius.circular(AppRadii.sheet),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

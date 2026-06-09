@@ -36,7 +36,7 @@ class TodoBottomInputBar extends StatelessWidget {
                   Color(0xFFF5F0FF),
                 ],
               ),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadii.control),
             ),
             child: IconButton(
               tooltip: '快速挑选',
@@ -52,7 +52,7 @@ class TodoBottomInputBar extends StatelessWidget {
           Expanded(
             child: InkWell(
               onTap: onInput,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadii.control),
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Text(
@@ -70,7 +70,7 @@ class TodoBottomInputBar extends StatelessWidget {
               fixedSize: const Size(40, 40),
               backgroundColor: AppColors.accent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadii.control),
               ),
             ),
             icon: const Icon(Icons.search, size: 20, color: Colors.white),
@@ -236,7 +236,7 @@ class _TodoRight extends StatelessWidget {
             minimumSize: const Size(58, 32),
             side: const BorderSide(color: AppColors.accent),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppRadii.control),
             ),
           ),
           child: Text(todo.isDone ? '已完成' : '完成'),

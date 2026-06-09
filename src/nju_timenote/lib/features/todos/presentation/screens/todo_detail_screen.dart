@@ -61,7 +61,6 @@ class _TodoDetailScreenState extends ConsumerState<TodoDetailScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: Column(
               children: [
-                const StatusHeader(),
                 PageTitleBar(
                   title: _todoId == null ? '创建待办' : '待办详情',
                   trailing: _todoId == null
@@ -141,13 +140,17 @@ class _TodoDetailScreenState extends ConsumerState<TodoDetailScreen> {
                           const _SectionTitle('Tag'),
                           InkWell(
                             onTap: () => _pickTags(state.tags),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(
+                              AppRadii.control,
+                            ),
                             child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.control,
+                                ),
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: Text(

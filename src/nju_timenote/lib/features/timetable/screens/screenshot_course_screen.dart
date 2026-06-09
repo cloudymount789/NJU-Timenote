@@ -28,7 +28,6 @@ class _ScreenshotCourseScreenState
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             child: Column(
               children: [
-                const StatusHeader(),
                 PageTitleBar(
                   title: '截图添加课程',
                   onBack: () => Navigator.of(context).pop(),
@@ -45,14 +44,16 @@ class _ScreenshotCourseScreenState
                     children: [
                       InkWell(
                         key: const Key('mock-screenshot-picker'),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadii.card),
                         onTap: () =>
                             setState(() => _hasSelectedMockImage = true),
                         child: Container(
                           height: 230,
                           decoration: BoxDecoration(
                             color: AppColors.background,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(
+                              AppRadii.control,
+                            ),
                             border: Border.all(color: AppColors.border),
                           ),
                           child: Center(
