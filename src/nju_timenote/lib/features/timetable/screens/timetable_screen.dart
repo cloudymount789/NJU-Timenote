@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../app/providers.dart';
 import '../../../app/routes.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/date_formatters.dart';
 import '../../../core/widgets/app_shell.dart';
 import '../../settings/models/settings.dart';
 import '../models/course.dart';
@@ -61,6 +62,8 @@ class TimetableScreen extends ConsumerWidget {
                         periods: periods,
                         onCourseLongPress: (course) =>
                             _confirmDelete(context, ref, course),
+                        onCourseTap: (course) =>
+                            _showCourseDetail(context, ref, course),
                       ),
                     ),
                   ),
@@ -102,6 +105,110 @@ class TimetableScreen extends ConsumerWidget {
           .read(coursesControllerProvider.notifier)
           .deleteCourse(course.id);
     }
+  }
+
+  void _showCourseDetail(
+    BuildContext context,
+    WidgetRef ref,
+    Course course,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.sheet)),
+      ),
+      builder: (ctx) => _CourseDetailSheet(course: course),
+    );
+  }
+}
+
+class _CourseDetailSheet extends StatelessWidget {
+  const _CourseDetailSheet({required this.course});
+
+  final Course course;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(course.name, style: Theme.of(context).textTheme.titleMedium),
+              const Spacer(),
+              IconButton(
+                tooltip: '编辑课程',
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.manualCourse,
+                    arguments: course,
+                  );
+                },
+                icon: const Icon(Icons.edit_outlined, color: AppColors.accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (course.teacher.isNotEmpty) ...[
+            _DetailRow(icon: Icons.person_outline, label: '教师', value: course.teacher),
+            const Divider(height: 1),
+          ],
+          _DetailRow(icon: Icons.location_on_outlined, label: '地点', value: course.location),
+          if (course.note.isNotEmpty) ...[
+            const Divider(height: 1),
+            _DetailRow(icon: Icons.note_alt_outlined, label: '备注', value: course.note),
+          ],
+          const Divider(height: 1),
+          _DetailRow(
+            icon: Icons.access_time,
+            label: '时间',
+            value: '${PeriodRange.weekdayLabels[course.dayOfWeek - 1]} 第 ${course.startPeriod}-${course.endPeriod} 节',
+          ),
+          const Divider(height: 1),
+          _DetailRow(
+            icon: Icons.calendar_today_outlined,
+            label: '周次',
+            value: '${course.startWeek}-${course.endWeek}周 ${weekRuleLabel(course.weekRule)}',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.icon, required this.label, required this.value});
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.textMuted),
+          const SizedBox(width: 12),
+          Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.end,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

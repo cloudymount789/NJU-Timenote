@@ -4,10 +4,12 @@ import '../domain/todo_repository.dart';
 class MockTodoRepository implements TodoRepository {
   MockTodoRepository()
     : _todos = _seedTodos(),
-      _tags = ['考试', '作业', '讲座', '会议', '生活', '学习'];
+      _tags = ['考试', '作业', '讲座', '会议', '生活', '学习'],
+      _searchHistory = ['dlco', '作业', '考试', '数据结构', '会议'];
 
   final List<TodoItem> _todos;
   final List<String> _tags;
+  final List<String> _searchHistory;
   int _nextId = 100;
 
   @override
@@ -210,6 +212,18 @@ class MockTodoRepository implements TodoRepository {
       );
     }
     return created;
+  }
+
+  @override
+  Future<List<String>> fetchSearchHistory() async {
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    return List<String>.unmodifiable(_searchHistory);
+  }
+
+  @override
+  Future<void> clearSearchHistory() async {
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    _searchHistory.clear();
   }
 
   List<TodoItem> _applyFilter(List<TodoItem> todos, TodoFilter filter) {

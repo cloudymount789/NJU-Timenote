@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme/app_theme.dart';
 import '../features/home/home_screen.dart';
+import '../features/settings/screens/period_editor_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/timetable/screens/add_course_entry_screen.dart';
 import '../features/timetable/screens/manual_course_screen.dart';
@@ -26,6 +27,7 @@ class TimenoteApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: buildTimenoteTheme(),
       routes: {
+        AppRoutes.periodEditor: (_) => const PeriodEditorScreen(),
         AppRoutes.home: (_) => const HomeScreen(),
         AppRoutes.settings: (_) => const SettingsScreen(),
         AppRoutes.timetable: (_) => const TimetableScreen(),

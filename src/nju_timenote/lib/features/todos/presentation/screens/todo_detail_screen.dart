@@ -227,12 +227,12 @@ class _TodoDetailScreenState extends ConsumerState<TodoDetailScreen> {
         _deadlineAt = null;
       } else if (value == TodoKind.duration) {
         _deadlineAt = null;
-        _startAt ??= DateTime(2026, 6, 19, 18);
-        _endAt ??= DateTime(2026, 6, 19, 19, 30);
+        _startAt ??= DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 18, 0);
+        _endAt ??= DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 19, 30);
       } else {
         _startAt = null;
         _endAt = null;
-        _deadlineAt ??= DateTime(2026, 6, 19, 23, 59);
+        _deadlineAt ??= DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 23, 59);
       }
     });
   }
@@ -325,10 +325,11 @@ class _TodoDetailScreenState extends ConsumerState<TodoDetailScreen> {
   }
 
   Future<void> _pickDuration() async {
+    final now = DateTime.now();
     final start = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(
-        _startAt ?? DateTime(2026, 6, 19, 18),
+        _startAt ?? DateTime(now.year, now.month, now.day, 18, 0),
       ),
     );
     if (start == null || !mounted) {
@@ -337,21 +338,16 @@ class _TodoDetailScreenState extends ConsumerState<TodoDetailScreen> {
     final end = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(
-        _endAt ?? DateTime(2026, 6, 19, 19, 30),
+        _endAt ?? DateTime(now.year, now.month, now.day, 19, 30),
       ),
     );
     if (end == null) {
       return;
     }
-    final date = DateTime(2026, 6, 19);
     final startAt = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      start.hour,
-      start.minute,
+      now.year, now.month, now.day, start.hour, start.minute,
     );
-    var endAt = DateTime(date.year, date.month, date.day, end.hour, end.minute);
+    var endAt = DateTime(now.year, now.month, now.day, end.hour, end.minute);
     if (!endAt.isAfter(startAt)) {
       endAt = startAt.add(const Duration(minutes: 30));
     }
@@ -362,17 +358,18 @@ class _TodoDetailScreenState extends ConsumerState<TodoDetailScreen> {
   }
 
   Future<void> _pickDeadline() async {
+    final now = DateTime.now();
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(
-        _deadlineAt ?? DateTime(2026, 6, 19, 23, 59),
+        _deadlineAt ?? DateTime(now.year, now.month, now.day, 23, 59),
       ),
     );
     if (time == null) {
       return;
     }
     setState(() {
-      _deadlineAt = DateTime(2026, 6, 19, time.hour, time.minute);
+      _deadlineAt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
     });
   }
 

@@ -162,7 +162,7 @@ class _FilterDrawerState extends ConsumerState<_FilterDrawer> {
                 ),
                 TodoChip(
                   label: _filter.date == null
-                      ? formatMonthDay(DateTime(2026, 6, 19))
+                      ? formatMonthDay(DateTime.now())
                       : formatMonthDay(_filter.date!),
                   selected: _filter.date != null,
                   onTap: _pickDate,
@@ -240,7 +240,7 @@ class _FilterDrawerState extends ConsumerState<_FilterDrawer> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _filter.date ?? DateTime(2026, 6, 19),
+      initialDate: _filter.date ?? DateTime.now(),
       firstDate: DateTime(2026, 1, 1),
       lastDate: DateTime(2027, 12, 31),
     );
@@ -356,7 +356,7 @@ Future<void> showCreateTodoSheet(BuildContext context, WidgetRef ref) {
                                           : text,
                                       content: text,
                                       kind: TodoKind.deadline,
-                                      deadlineAt: DateTime(2026, 6, 20, 23, 59),
+                                      deadlineAt: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 1, 23, 59),
                                       priority: 4,
                                       tags: const ['学习'],
                                     ),

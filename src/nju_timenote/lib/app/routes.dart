@@ -14,4 +14,5 @@ class AppRoutes {
   static const goalSplitSetup = '/todos/goal-split';
   static const goalSplitBreakdown = '/todos/goal-split/breakdown';
   static const goalSplitReview = '/todos/goal-split/review';
+  static const periodEditor = '/settings/periods';
 }

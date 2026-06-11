@@ -9,12 +9,14 @@ class TimetableGrid extends StatelessWidget {
     required this.courses,
     required this.periods,
     required this.onCourseLongPress,
+    this.onCourseTap,
     super.key,
   });
 
   final List<Course> courses;
   final List<PeriodTime> periods;
   final ValueChanged<Course> onCourseLongPress;
+  final ValueChanged<Course>? onCourseTap;
 
   static const _timeColumnWidth = 46.0;
   static const _headerHeight = 58.0;
@@ -65,6 +67,10 @@ class TimetableGrid extends StatelessWidget {
                   child: _CourseBlock(
                     course: placement.course,
                     onLongPress: () => onCourseLongPress(placement.course),
+                    onTap:
+                        onCourseTap != null
+                            ? () => onCourseTap!(placement.course)
+                            : null,
                   ),
                 ),
               ),
@@ -299,10 +305,15 @@ class _GridLinePainter extends CustomPainter {
 }
 
 class _CourseBlock extends StatelessWidget {
-  const _CourseBlock({required this.course, required this.onLongPress});
+  const _CourseBlock({
+    required this.course,
+    required this.onLongPress,
+    this.onTap,
+  });
 
   final Course course;
   final VoidCallback onLongPress;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -311,6 +322,7 @@ class _CourseBlock extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadii.control),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadii.control),
+        onTap: onTap,
         onLongPress: onLongPress,
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -319,28 +331,26 @@ class _CourseBlock extends StatelessWidget {
             }
             return Padding(
               padding: const EdgeInsets.all(5),
-              child: ClipRect(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        course.name,
-                        maxLines: constraints.maxHeight > 50 ? 2 : 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          height: 1.05,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    course.name,
+                    maxLines: constraints.maxHeight > 50 ? 2 : 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      height: 1.05,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
                     ),
-                    if (constraints.maxHeight > 38) ...[
-                      const SizedBox(height: 2),
-                      Text(
+                  ),
+                  if (constraints.maxHeight > 38) ...[
+                    const SizedBox(height: 2),
+                    Expanded(
+                      child: Text(
                         course.location,
-                        maxLines: 1,
+                        maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 9,
@@ -348,9 +358,9 @@ class _CourseBlock extends StatelessWidget {
                           color: AppColors.textSecondary,
                         ),
                       ),
-                    ],
+                    ),
                   ],
-                ),
+                ],
               ),
             );
           },

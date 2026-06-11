@@ -2,7 +2,9 @@ import '../models/settings.dart';
 
 abstract class SettingsRepository {
   Future<SemesterSettings> fetchSemesterSettings();
-  Future<void> backup();
+  Future<void> updatePeriodTimes(List<PeriodTime> periods);
+  Future<void> updateSemesterStartDate(DateTime date);
+  Future<String> backup();
   Future<void> exportData();
 }
 
@@ -30,8 +32,19 @@ class MockSettingsRepository implements SettingsRepository {
   }
 
   @override
-  Future<void> backup() async {
+  Future<void> updatePeriodTimes(List<PeriodTime> periods) async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+  }
+
+  @override
+  Future<void> updateSemesterStartDate(DateTime date) async {
+    await Future<void>.delayed(const Duration(milliseconds: 80));
+  }
+
+  @override
+  Future<String> backup() async {
     await Future<void>.delayed(const Duration(milliseconds: 220));
+    return '/mock/backup/path';
   }
 
   @override

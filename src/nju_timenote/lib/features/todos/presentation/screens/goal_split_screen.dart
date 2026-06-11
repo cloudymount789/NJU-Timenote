@@ -18,7 +18,7 @@ class GoalSplitSetupScreen extends StatefulWidget {
 class _GoalSplitSetupScreenState extends State<GoalSplitSetupScreen> {
   final _titleController = TextEditingController();
   final _noteController = TextEditingController();
-  DateTime _deadline = DateTime(2026, 6, 25, 23, 59);
+  DateTime _deadline = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day + 7, 23, 59);
   bool _initialized = false;
 
   @override
@@ -95,8 +95,8 @@ class _GoalSplitSetupScreenState extends State<GoalSplitSetupScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _deadline,
-      firstDate: DateTime(2026, 6, 9),
-      lastDate: DateTime(2027, 12, 31),
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime(DateTime.now().year + 1, 12, 31),
     );
     if (picked != null) {
       setState(() {
@@ -107,10 +107,10 @@ class _GoalSplitSetupScreenState extends State<GoalSplitSetupScreen> {
 
   List<GoalSubtaskDraft> _defaultSubtasks() {
     return [
-      GoalSubtaskDraft(title: '整理第一章笔记', plannedDate: DateTime(2026, 6, 19)),
-      GoalSubtaskDraft(title: '完成习题 1-20', plannedDate: DateTime(2026, 6, 20)),
-      GoalSubtaskDraft(title: '模拟卷 A', plannedDate: DateTime(2026, 6, 21)),
-      GoalSubtaskDraft(title: '错题回顾', plannedDate: DateTime(2026, 6, 22)),
+      GoalSubtaskDraft(title: '整理第一章笔记', plannedDate: DateTime.now()),
+      GoalSubtaskDraft(title: '完成习题 1-20', plannedDate: DateTime.now().add(const Duration(days: 1))),
+      GoalSubtaskDraft(title: '模拟卷 A', plannedDate: DateTime.now().add(const Duration(days: 2))),
+      GoalSubtaskDraft(title: '错题回顾', plannedDate: DateTime.now().add(const Duration(days: 3))),
     ];
   }
 }
@@ -205,7 +205,7 @@ class _GoalSplitBreakdownScreenState extends State<GoalSplitBreakdownScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _draft.subtasks[index].plannedDate,
-      firstDate: DateTime(2026, 6, 9),
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
       lastDate: _draft.finalDeadline,
     );
     if (picked != null) {
@@ -251,7 +251,7 @@ class _GoalSplitBreakdownScreenState extends State<GoalSplitBreakdownScreen> {
       _draft = _draft.copyWith(
         subtasks: [
           ..._draft.subtasks,
-          GoalSubtaskDraft(title: title, plannedDate: DateTime(2026, 6, 23)),
+          GoalSubtaskDraft(title: title, plannedDate: DateTime.now().add(const Duration(days: 4))),
         ],
       );
     });

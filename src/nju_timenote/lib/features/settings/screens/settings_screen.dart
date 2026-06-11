@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
+import '../../../app/routes.dart';
+import '../models/settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_shell.dart';
 
@@ -26,7 +28,7 @@ class SettingsScreen extends ConsumerWidget {
                   label: '节次时间',
                   value: '编辑',
                   valueColor: AppColors.accent,
-                  onTap: () {},
+                  onTap: () => Navigator.of(context).pushNamed(AppRoutes.periodEditor),
                 ),
                 const Divider(height: 1, color: AppColors.border),
                 _SettingsRow(
@@ -34,6 +36,7 @@ class SettingsScreen extends ConsumerWidget {
                   value: settings == null
                       ? '9 月 1 日'
                       : '${settings.semesterStartDate.month} 月 ${settings.semesterStartDate.day} 日',
+                  onTap: () => _pickSemesterDate(context, ref, settings),
                 ),
               ],
             ),
@@ -48,7 +51,7 @@ class SettingsScreen extends ConsumerWidget {
                   label: '本地备份',
                   value: '立即备份',
                   valueColor: AppColors.accent,
-                  onTap: () {},
+                  onTap: () => _doBackup(context, ref),
                 ),
                 const Divider(height: 1, color: AppColors.border),
                 _SettingsRow(label: '导出 / 分享', value: '›', onTap: () {}),
@@ -58,6 +61,41 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _pickSemesterDate(
+    BuildContext context,
+    WidgetRef ref,
+    SemesterSettings? settings,
+  ) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: settings?.semesterStartDate ?? DateTime.utc(2026, 9, 1),
+      firstDate: DateTime(2020, 1, 1),
+      lastDate: DateTime(2030, 12, 31),
+    );
+    if (picked == null) return;
+    await ref
+        .read(settingsRepositoryProvider)
+        .updateSemesterStartDate(picked);
+    ref.invalidate(semesterSettingsProvider);
+  }
+
+  Future<void> _doBackup(BuildContext context, WidgetRef ref) async {
+    try {
+      final path = await ref.read(settingsRepositoryProvider).backup();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('备份已保存到：$path')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('备份失败：$e')),
+        );
+      }
+    }
   }
 }
 

@@ -3,6 +3,7 @@ import '../models/course.dart';
 abstract class CourseRepository {
   Future<List<Course>> fetchCourses({required int week});
   Future<Course> addCourse(CourseDraft draft);
+  Future<Course> updateCourse(String courseId, CourseDraft draft);
   Future<void> deleteCourse(String courseId);
   Future<List<Course>> importCoursesFromScreenshot();
 }
@@ -42,6 +43,28 @@ class MockCourseRepository implements CourseRepository {
     );
     _courses.add(course);
     return course;
+  }
+
+  @override
+  Future<Course> updateCourse(String courseId, CourseDraft draft) async {
+    await Future<void>.delayed(const Duration(milliseconds: 180));
+    final index = _courses.indexWhere((c) => c.id == courseId);
+    if (index < 0) throw StateError('Course not found: $courseId');
+    final updated = _courses[index].copyWith(
+      name: draft.name,
+      teacher: draft.teacher,
+      location: draft.location,
+      note: draft.note,
+      dayOfWeek: draft.dayOfWeek,
+      startPeriod: draft.startPeriod,
+      endPeriod: draft.endPeriod,
+      weekRule: draft.weekRule,
+      startWeek: draft.startWeek,
+      endWeek: draft.endWeek,
+      updatedAt: DateTime.now(),
+    );
+    _courses[index] = updated;
+    return updated;
   }
 
   @override

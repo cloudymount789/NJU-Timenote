@@ -13,4 +13,6 @@ abstract class TodoRepository {
   Future<String> addTag(String name);
   Future<List<TodoRecommendation>> recommendTodos(RecommendationInput input);
   Future<List<TodoItem>> createGoalSplitTodos(GoalSplitDraft draft);
+  Future<List<String>> fetchSearchHistory();
+  Future<void> clearSearchHistory();
 }

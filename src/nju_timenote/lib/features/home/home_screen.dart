@@ -199,25 +199,34 @@ class _NextCourseCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  course?.name ?? '高等数学 (第3-4节)',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    _MutedMeta(
-                      icon: Icons.location_on_outlined,
-                      label: course?.location ?? '教学楼 A201',
+                if (course != null) ...[
+                  Text(
+                    course!.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 4,
+                    children: [
+                      _MutedMeta(
+                        icon: Icons.location_on_outlined,
+                        label: course!.location,
+                      ),
+                      _MutedMeta(
+                        icon: Icons.access_time,
+                        label: course!.periodRange.label,
+                      ),
+                    ],
+                  ),
+                ] else
+                  Text(
+                    '暂无课程，去添加吧',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
                     ),
-                    _MutedMeta(
-                      icon: Icons.access_time,
-                      label: course?.periodRange.label ?? '14:00 – 15:50',
-                    ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
@@ -252,17 +261,26 @@ class _NextTodoCard extends StatelessWidget {
                   style: TextStyle(color: AppColors.accent, fontSize: 13),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  todo?.title ?? '完成数据结构实验报告',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 6),
-                _MutedMeta(
-                  icon: Icons.access_time,
-                  label: todo?.deadlineAt == null
-                      ? '暂无截止时间'
-                      : '截止：${formatDateTimeShort(todo!.deadlineAt!)}',
-                ),
+                if (todo != null) ...[
+                  Text(
+                    todo!.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  _MutedMeta(
+                    icon: Icons.access_time,
+                    label: todo!.deadlineAt == null
+                        ? '暂无截止时间'
+                        : '截止：${formatDateTimeShort(todo!.deadlineAt!)}',
+                  ),
+                ] else
+                  Text(
+                    '暂无待办，去添加吧',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -346,7 +364,7 @@ class _DdlRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final urgent =
         todo.deadlineAt != null &&
-        todo.deadlineAt!.difference(DateTime(2026, 6, 19, 9, 41)).inHours < 24;
+        todo.deadlineAt!.difference(DateTime.now()).inHours < 24;
     return Padding(
       padding: const EdgeInsets.all(14),
       child: Row(

@@ -21,6 +21,7 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
   final _locationController = TextEditingController();
   final _noteController = TextEditingController();
 
+  String? _courseId;
   WeekRule _weekRule = WeekRule.all;
   int _startWeek = 1;
   int _endWeek = 25;
@@ -28,6 +29,7 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
   int _startPeriod = 1;
   int _endPeriod = 1;
   bool _isSaving = false;
+  bool _initialized = false;
 
   @override
   void dispose() {
@@ -40,6 +42,25 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = _courseId != null;
+    if (!_initialized) {
+      _initialized = true;
+      final course = ModalRoute.of(context)?.settings.arguments as Course?;
+      if (course != null) {
+        _courseId = course.id;
+        _nameController.text = course.name;
+        _teacherController.text = course.teacher;
+        _locationController.text = course.location;
+        _noteController.text = course.note;
+        _weekRule = course.weekRule;
+        _startWeek = course.startWeek;
+        _endWeek = course.endWeek;
+        _dayOfWeek = course.dayOfWeek;
+        _startPeriod = course.startPeriod;
+        _endPeriod = course.endPeriod;
+      }
+    }
+
     return AppGradientScaffold(
       child: Column(
         children: [
@@ -48,7 +69,7 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
             child: Column(
               children: [
                 PageTitleBar(
-                  title: '添加课程',
+                  title: isEditing ? '编辑课程' : '添加课程',
                   onBack: () => Navigator.of(context).pop(),
                 ),
               ],
@@ -132,7 +153,7 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
               child: FilledButton(
                 key: const Key('submit-course-button'),
                 onPressed: _isSaving ? null : _submit,
-                child: Text(_isSaving ? '添加中...' : '添加课程'),
+                child: Text(_isSaving ? '保存中...' : (isEditing ? '保存修改' : '添加课程')),
               ),
             ),
           ),
@@ -186,28 +207,26 @@ class _ManualCourseScreenState extends ConsumerState<ManualCourseScreen> {
       return;
     }
     setState(() => _isSaving = true);
-    await ref
-        .read(coursesControllerProvider.notifier)
-        .addCourse(
-          CourseDraft(
-            name: _nameController.text.trim(),
-            teacher: _teacherController.text.trim(),
-            location: _locationController.text.trim(),
-            note: _noteController.text.trim(),
-            dayOfWeek: _dayOfWeek,
-            startPeriod: _startPeriod,
-            endPeriod: _endPeriod,
-            weekRule: _weekRule,
-            startWeek: _startWeek,
-            endWeek: _endWeek,
-          ),
-        );
-    if (!mounted) {
-      return;
+    final draft = CourseDraft(
+      name: _nameController.text.trim(),
+      teacher: _teacherController.text.trim(),
+      location: _locationController.text.trim(),
+      note: _noteController.text.trim(),
+      dayOfWeek: _dayOfWeek,
+      startPeriod: _startPeriod,
+      endPeriod: _endPeriod,
+      weekRule: _weekRule,
+      startWeek: _startWeek,
+      endWeek: _endWeek,
+    );
+    final notifier = ref.read(coursesControllerProvider.notifier);
+    if (_courseId != null) {
+      await notifier.updateCourse(_courseId!, draft);
+    } else {
+      await notifier.addCourse(draft);
     }
-    Navigator.of(
-      context,
-    ).pushNamedAndRemoveUntil(AppRoutes.timetable, (route) => route.isFirst);
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.settings.name == AppRoutes.timetable || route.isFirst);
   }
 }
 

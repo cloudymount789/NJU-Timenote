@@ -1,25 +1,34 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/database/app_database.dart';
+import '../features/settings/data/local_settings_repository.dart';
 import '../features/settings/models/settings.dart';
 import '../features/settings/repositories/settings_repository.dart';
+import '../features/timetable/data/local_course_repository.dart';
 import '../features/timetable/models/course.dart';
 import '../features/timetable/repositories/course_repository.dart';
-import '../features/todos/data/mock_todo_repository.dart';
+import '../features/todos/data/local_todo_repository.dart';
 import '../features/todos/domain/todo.dart';
 import '../features/todos/domain/todo_repository.dart';
 
 final selectedWeekProvider = Provider<int>((ref) => 6);
 
+final databaseProvider = Provider<AppDatabase>((ref) {
+  final db = AppDatabase();
+  ref.onDispose(db.close);
+  return db;
+});
+
 final courseRepositoryProvider = Provider<CourseRepository>(
-  (ref) => MockCourseRepository(),
+  (ref) => LocalCourseRepository(ref.watch(databaseProvider)),
 );
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
-  (ref) => MockSettingsRepository(),
+  (ref) => LocalSettingsRepository(ref.watch(databaseProvider)),
 );
 
 final todoRepositoryProvider = Provider<TodoRepository>(
-  (ref) => MockTodoRepository(),
+  (ref) => LocalTodoRepository(ref.watch(databaseProvider)),
 );
 
 final coursesControllerProvider =
@@ -37,6 +46,14 @@ class CoursesController extends AsyncNotifier<List<Course>> {
   Future<Course> addCourse(CourseDraft draft) async {
     final repository = ref.read(courseRepositoryProvider);
     final course = await repository.addCourse(draft);
+    ref.invalidateSelf();
+    await future;
+    return course;
+  }
+
+  Future<Course> updateCourse(String courseId, CourseDraft draft) async {
+    final repository = ref.read(courseRepositoryProvider);
+    final course = await repository.updateCourse(courseId, draft);
     ref.invalidateSelf();
     await future;
     return course;
@@ -71,7 +88,8 @@ class TodosController extends AsyncNotifier<TodosState> {
     final repository = ref.watch(todoRepositoryProvider);
     final todos = await repository.fetchTodos();
     final tags = await repository.fetchTags();
-    return TodosState(todos: todos, tags: tags);
+    final history = await repository.fetchSearchHistory();
+    return TodosState(todos: todos, tags: tags, searchHistory: history);
   }
 
   TodoRepository get _repository => ref.read(todoRepositoryProvider);
@@ -137,6 +155,7 @@ class TodosController extends AsyncNotifier<TodosState> {
   }
 
   Future<void> clearSearchHistory() async {
+    await _repository.clearSearchHistory();
     final current = await future;
     state = AsyncData(current.copyWith(searchHistory: const []));
   }
@@ -168,7 +187,7 @@ class TodosState {
     required this.todos,
     required this.tags,
     this.filter = const TodoFilter(),
-    this.searchHistory = const ['dlco', '作业', '考试', '数据结构', '会议'],
+    this.searchHistory = const [],
   });
 
   final List<TodoItem> todos;
