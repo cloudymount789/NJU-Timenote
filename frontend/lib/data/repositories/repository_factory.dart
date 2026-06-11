@@ -7,6 +7,7 @@ import '../sources/local/local_todo_source.dart';
 import 'app_repositories.dart';
 import 'course_repository.dart';
 import 'goal_split_repository.dart';
+import 'quick_todo_repository.dart';
 import 'recommendation_repository.dart';
 import 'settings_repository.dart';
 import 'tag_repository.dart';
@@ -22,15 +23,17 @@ class RepositoryFactory {
 
   static AppRepositories local() {
     final tagSource = LocalTagSource();
+    final todoSource = LocalTodoSource(tagSource);
     return AppRepositories(
       courses: LocalCourseRepository(LocalCourseSource()),
-      todos: LocalTodoRepository(LocalTodoSource(tagSource)),
+      todos: LocalTodoRepository(todoSource),
       tags: LocalTagRepository(tagSource),
       settings: LocalSettingsRepository(LocalSettingsSource()),
       recommendations: LocalRecommendationRepository(
-        LocalRecommendationSource(),
+        LocalRecommendationSource(todoSource),
       ),
-      goalSplits: LocalGoalSplitRepository(LocalGoalSplitSource()),
+      goalSplits: LocalGoalSplitRepository(LocalGoalSplitSource(todoSource)),
+      quickTodos: LocalQuickTodoRepository(todoSource),
     );
   }
 }
@@ -135,6 +138,21 @@ class LocalTagRepository implements TagRepository {
   @override
   Future<String> addTag(String name) {
     return _source.addTag(name);
+  }
+}
+
+class LocalQuickTodoRepository implements QuickTodoRepository {
+  const LocalQuickTodoRepository(this._source);
+
+  final LocalTodoSource _source;
+
+  @override
+  Future<TodoItem> createFromSentence(String sentence) {
+    final title = sentence.trim();
+    if (title.isEmpty) {
+      throw ArgumentError.value(sentence, 'sentence', '内容不能为空');
+    }
+    return _source.createTodo(TodoDraft(title: title));
   }
 }
 

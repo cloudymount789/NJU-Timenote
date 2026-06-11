@@ -1,5 +1,6 @@
 import 'course_repository.dart';
 import 'goal_split_repository.dart';
+import 'quick_todo_repository.dart';
 import 'recommendation_repository.dart';
 import 'settings_repository.dart';
 import 'tag_repository.dart';
@@ -13,6 +14,7 @@ class AppRepositories {
     required this.settings,
     required this.recommendations,
     required this.goalSplits,
+    required this.quickTodos,
   });
 
   final CourseRepository courses;
@@ -21,4 +23,5 @@ class AppRepositories {
   final SettingsRepository settings;
   final RecommendationRepository recommendations;
   final GoalSplitRepository goalSplits;
+  final QuickTodoRepository quickTodos;
 }

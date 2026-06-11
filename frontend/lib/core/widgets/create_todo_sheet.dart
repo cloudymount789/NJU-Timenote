@@ -1,34 +1,45 @@
 import 'package:flutter/material.dart';
 
+import '../../app/app.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 
-Future<void> showCreateTodoSheet(BuildContext context) {
+Future<void> showCreateTodoSheet(BuildContext context, {String? initialText}) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
-    builder: (context) => const CreateTodoSheet(),
+    builder: (_) =>
+        CreateTodoSheet(parentContext: context, initialText: initialText),
   );
 }
 
 class CreateTodoSheet extends StatefulWidget {
-  const CreateTodoSheet({super.key});
+  const CreateTodoSheet({
+    required this.parentContext,
+    this.initialText,
+    super.key,
+  });
+
+  final BuildContext parentContext;
+  final String? initialText;
 
   @override
   State<CreateTodoSheet> createState() => _CreateTodoSheetState();
 }
 
 class _CreateTodoSheetState extends State<CreateTodoSheet> {
-  final TextEditingController _controller = TextEditingController();
+  final _controller = TextEditingController();
+  var _submitting = false;
 
   bool get _hasText => _controller.text.trim().isNotEmpty;
 
   @override
   void initState() {
     super.initState();
+    _controller.text = widget.initialText ?? '';
     _controller.addListener(() => setState(() {}));
   }
 
@@ -38,10 +49,50 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
     super.dispose();
   }
 
+  Future<void> _openGoalSplit(String? title) async {
+    final navigator = Navigator.of(widget.parentContext);
+    Navigator.of(context).pop();
+    final result = await navigator.pushNamed<String>(
+      AppRoutes.goalSplit,
+      arguments: GoalSplitRouteArgs(initialTitle: title),
+    );
+    if (result != null && widget.parentContext.mounted) {
+      await showCreateTodoSheet(widget.parentContext, initialText: result);
+    }
+  }
+
+  Future<void> _submit() async {
+    final title = _controller.text.trim();
+    if (title.isEmpty || _submitting) {
+      return;
+    }
+    setState(() => _submitting = true);
+    final navigator = Navigator.of(widget.parentContext);
+    try {
+      await AppScope.repositoriesOf(
+        widget.parentContext,
+      ).quickTodos.createFromSentence(title);
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      await navigator.pushNamed(AppRoutes.todos);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('创建失败：$error')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: DecoratedBox(
@@ -87,13 +138,7 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
                     child: IconButton(
                       onPressed: () {
                         final title = _controller.text.trim();
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pushNamed(
-                          AppRoutes.goalSplit,
-                          arguments: GoalSplitRouteArgs(
-                            initialTitle: title.isEmpty ? null : title,
-                          ),
-                        );
+                        _openGoalSplit(title.isEmpty ? null : title);
                       },
                       icon: const Icon(Icons.account_tree_outlined),
                     ),
@@ -126,7 +171,7 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
                   TextButton.icon(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      Navigator.of(context).pushNamed(
+                      Navigator.of(widget.parentContext).pushNamed(
                         AppRoutes.todoDetail,
                         arguments: const TodoDetailRouteArgs(isCreate: true),
                       );
@@ -136,12 +181,7 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
                   ),
                   const Spacer(),
                   FilledButton(
-                    onPressed: _hasText
-                        ? () {
-                            Navigator.of(context).pop();
-                            Navigator.of(context).pushNamed(AppRoutes.todos);
-                          }
-                        : null,
+                    onPressed: _hasText ? _submit : null,
                     style: FilledButton.styleFrom(
                       shape: const CircleBorder(),
                       padding: const EdgeInsets.all(12),

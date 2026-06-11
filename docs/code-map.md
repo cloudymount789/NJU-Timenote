@@ -22,7 +22,7 @@
 - `frontend/lib/core/widgets/app_header.dart`：页面标题/header。
 - `frontend/lib/core/widgets/app_card.dart`：白色卡片和原型风格阴影。
 - `frontend/lib/core/widgets/app_bottom_input_bar.dart`：快速挑选、一句话输入和搜索底部栏。
-- `frontend/lib/core/widgets/create_todo_sheet.dart`：任务 1 的创建待办底部浮层壳。
+- `frontend/lib/core/widgets/create_todo_sheet.dart`：创建待办底部浮层；支持一句话创建、手动创建和大目标拆分入口。
 - `frontend/lib/core/widgets/app_dialogs.dart`：确认弹窗和滚轮选择器壳。
 - `frontend/lib/core/widgets/right_sidebar_shell.dart`：右侧侧栏壳。
 - `frontend/lib/core/widgets/state_views.dart`：空态、加载态、错误态、禁用态。
@@ -31,8 +31,8 @@
 ## 数据边界
 
 - `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft` 和周次匹配规则；`todo.dart` 已包含 `TodoItem`、`TodoDraft`、`TodoPatch`、`TodoFilter`、PATCH 字段语义和筛选匹配。
-- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、创建、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、批量删除、批量完成和基础搜索。
-- `frontend/lib/data/sources/local/`：本地 source；`LocalTodoSource` 维护内存待办列表、排序/筛选/duration 自动完成/批量规则，`LocalTagSource` 维护预置 tag 和新增 tag。
+- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、创建、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、批量删除、批量完成和基础搜索；`QuickTodoRepository` 封装一句话创建边界。
+- `frontend/lib/data/sources/local/`：本地 source；`LocalTodoSource` 维护内存待办列表、排序/筛选/duration 自动完成/批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办。
 - `frontend/lib/data/sources/mock/`：mock 边界占位；默认不启用 mock 数据。
 - `frontend/lib/data/sources/remote/`：未来后端边界占位；UI 不得直接调用。
 
@@ -47,9 +47,9 @@
 - `frontend/lib/features/todo/todo_list_page.dart`：待办列表、空态、筛选侧栏、批量模式、三种待办行、底部输入栏入口。
 - `frontend/lib/features/todo/todo_detail_page.dart`：待办新建/编辑详情页、类型切换、时间选择、半星优先级、重复设置、删除确认。
 - `frontend/lib/features/todo/todo_tag_page.dart`：tag 多选和新增 tag 弹窗。
-- `frontend/lib/features/todo/todo_search_placeholder_page.dart`：任务 4 的待办搜索占位路由。
-- `frontend/lib/features/recommendation/`：任务 4 的下一件事入口。
-- `frontend/lib/features/goal_split/`：任务 4 的大目标拆分入口。
+- `frontend/lib/features/todo/todo_search_page.dart`：待办搜索、历史、清空历史确认、结果列表。
+- `frontend/lib/features/recommendation/next_thing_page.dart`：下一件事状态滑杆和推荐结果页。
+- `frontend/lib/features/goal_split/goal_split_page.dart`：大目标拆分三步流程和确认生成。
 
 ## 常见修改入口
 
@@ -59,6 +59,7 @@
 - 按原型新增页面：优先复用 `GradientPageScaffold`、`AppHeader`、`AppCard` 和状态视图。
 - 修改课表：优先看 `frontend/lib/features/schedule/`、`frontend/lib/data/models/course.dart`、`frontend/lib/data/sources/local/local_course_source.dart`。
 - 修改待办核心：优先看 `frontend/lib/features/todo/`、`frontend/lib/data/models/todo.dart`、`frontend/lib/data/sources/local/local_todo_source.dart`、`frontend/lib/data/sources/local/local_tag_source.dart`。
+- 修改创建/搜索/推荐/目标拆分：看 `frontend/lib/core/widgets/create_todo_sheet.dart`、`frontend/lib/features/todo/todo_search_page.dart`、`frontend/lib/features/recommendation/next_thing_page.dart`、`frontend/lib/features/goal_split/goal_split_page.dart`、`frontend/lib/data/sources/local/local_recommendation_source.dart`、`frontend/lib/data/sources/local/local_goal_split_source.dart`。
 - 运行检查：进入 `frontend/` 后执行 `dart format lib test`、`flutter analyze`、`flutter test`。
 
 ## 边界

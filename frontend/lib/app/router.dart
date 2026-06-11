@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../features/goal_split/goal_split_placeholder_page.dart';
+import '../data/models/recommendation.dart';
+import '../features/goal_split/goal_split_page.dart';
 import '../features/home/home_page.dart';
 import '../features/recommendation/next_thing_page.dart';
 import '../features/schedule/add_schedule_page.dart';
@@ -10,7 +11,7 @@ import '../features/schedule/screenshot_course_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/todo/todo_detail_page.dart';
 import '../features/todo/todo_list_page.dart';
-import '../features/todo/todo_search_placeholder_page.dart';
+import '../features/todo/todo_search_page.dart';
 import '../features/todo/todo_tag_page.dart';
 
 class AppRoutes {
@@ -27,6 +28,7 @@ class AppRoutes {
   static const todoTags = '/todos/tags';
   static const todoSearch = '/todos/search';
   static const nextThing = '/todos/next';
+  static const nextThingRecommend = '/todos/next/recommend';
   static const goalSplit = '/todos/goal-split';
 }
 
@@ -47,6 +49,12 @@ class GoalSplitRouteArgs {
   const GoalSplitRouteArgs({this.initialTitle});
 
   final String? initialTitle;
+}
+
+class RecommendationRouteArgs {
+  const RecommendationRouteArgs({required this.input});
+
+  final RecommendationInput input;
 }
 
 class AppRouter {
@@ -84,12 +92,23 @@ class AppRouter {
           initialTags: args is TodoTagRouteArgs ? args.initialTags : const [],
         );
       case AppRoutes.todoSearch:
-        page = const TodoSearchPlaceholderPage();
+        page = const TodoSearchPage();
       case AppRoutes.nextThing:
         page = const NextThingPage();
+      case AppRoutes.nextThingRecommend:
+        final args = settings.arguments;
+        page = NextThingRecommendPage(
+          input: args is RecommendationRouteArgs
+              ? args.input
+              : const RecommendationInput(
+                  mood: 52,
+                  willingness: 68,
+                  anxiety: 35,
+                ),
+        );
       case AppRoutes.goalSplit:
         final args = settings.arguments;
-        page = GoalSplitPlaceholderPage(
+        page = GoalSplitPage(
           initialTitle: args is GoalSplitRouteArgs ? args.initialTitle : null,
         );
       default:
