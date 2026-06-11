@@ -1,0 +1,13 @@
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+htmlcov/
+
+# Test fixtures — except .gitkeep
+tests/fixtures/screenshots/*
+!tests/fixtures/screenshots/.gitkeep
+
+# Env
+.env
