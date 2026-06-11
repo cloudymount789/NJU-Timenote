@@ -21,10 +21,11 @@ class RepositoryFactory {
   const RepositoryFactory._();
 
   static AppRepositories local() {
+    final tagSource = LocalTagSource();
     return AppRepositories(
       courses: LocalCourseRepository(LocalCourseSource()),
-      todos: LocalTodoRepository(LocalTodoSource()),
-      tags: LocalTagRepository(LocalTagSource()),
+      todos: LocalTodoRepository(LocalTodoSource(tagSource)),
+      tags: LocalTagRepository(tagSource),
       settings: LocalSettingsRepository(LocalSettingsSource()),
       recommendations: LocalRecommendationRepository(
         LocalRecommendationSource(),
@@ -76,6 +77,11 @@ class LocalTodoRepository implements TodoRepository {
   }
 
   @override
+  Future<TodoItem?> getTodoById(String todoId) {
+    return _source.getTodoById(todoId);
+  }
+
+  @override
   Future<TodoItem?> getNextTodo() {
     return _source.getNextTodo();
   }
@@ -83,6 +89,36 @@ class LocalTodoRepository implements TodoRepository {
   @override
   Future<List<TodoItem>> searchTodos(String query) {
     return _source.searchTodos(query);
+  }
+
+  @override
+  Future<TodoItem> createTodo(TodoDraft draft) {
+    return _source.createTodo(draft);
+  }
+
+  @override
+  Future<TodoItem> updateTodo(String todoId, TodoPatch patch) {
+    return _source.updateTodo(todoId, patch);
+  }
+
+  @override
+  Future<void> deleteTodo(String todoId) {
+    return _source.deleteTodo(todoId);
+  }
+
+  @override
+  Future<TodoItem> completeTodo(String todoId) {
+    return _source.completeTodo(todoId);
+  }
+
+  @override
+  Future<void> batchDelete(List<String> todoIds) {
+    return _source.batchDelete(todoIds);
+  }
+
+  @override
+  Future<List<TodoItem>> batchComplete(List<String> todoIds) {
+    return _source.batchComplete(todoIds);
   }
 }
 
@@ -94,6 +130,11 @@ class LocalTagRepository implements TagRepository {
   @override
   Future<List<String>> getTags() {
     return _source.getTags();
+  }
+
+  @override
+  Future<String> addTag(String name) {
+    return _source.addTag(name);
   }
 }
 

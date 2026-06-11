@@ -38,7 +38,7 @@ void main() {
     await tester.tap(find.text('DDL 提醒'));
     await tester.pumpAndSettle();
 
-    expect(find.text('待办 · DDL'), findsOneWidget);
-    expect(find.textContaining('onlyDeadline=true'), findsOneWidget);
+    expect(find.text('DDL 提醒'), findsOneWidget);
+    expect(find.text('暂无待办'), findsOneWidget);
   });
 }

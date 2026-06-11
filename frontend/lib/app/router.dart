@@ -8,9 +8,10 @@ import '../features/schedule/manual_course_page.dart';
 import '../features/schedule/schedule_page.dart';
 import '../features/schedule/screenshot_course_page.dart';
 import '../features/settings/settings_page.dart';
-import '../features/todo/todo_detail_placeholder_page.dart';
-import '../features/todo/todo_list_placeholder_page.dart';
+import '../features/todo/todo_detail_page.dart';
+import '../features/todo/todo_list_page.dart';
 import '../features/todo/todo_search_placeholder_page.dart';
+import '../features/todo/todo_tag_page.dart';
 
 class AppRoutes {
   const AppRoutes._();
@@ -23,6 +24,7 @@ class AppRoutes {
   static const scheduleAddScreenshot = '/schedule/add/screenshot';
   static const todos = '/todos';
   static const todoDetail = '/todos/detail';
+  static const todoTags = '/todos/tags';
   static const todoSearch = '/todos/search';
   static const nextThing = '/todos/next';
   static const goalSplit = '/todos/goal-split';
@@ -67,13 +69,19 @@ class AppRouter {
         page = const ScreenshotCoursePage();
       case AppRoutes.todos:
         final args = settings.arguments;
-        page = TodoListPlaceholderPage(
+        page = TodoListPage(
           onlyDeadline: args is TodoListRouteArgs && args.onlyDeadline,
         );
       case AppRoutes.todoDetail:
         final args = settings.arguments;
-        page = TodoDetailPlaceholderPage(
+        page = TodoDetailPage(
           isCreate: args is TodoDetailRouteArgs && args.isCreate,
+          todoId: args is TodoDetailRouteArgs ? args.todoId : null,
+        );
+      case AppRoutes.todoTags:
+        final args = settings.arguments;
+        page = TodoTagPage(
+          initialTags: args is TodoTagRouteArgs ? args.initialTags : const [],
         );
       case AppRoutes.todoSearch:
         page = const TodoSearchPlaceholderPage();
