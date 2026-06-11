@@ -1,44 +1,44 @@
-# Manual Test Checklist
+# 手动测试清单
 
-Use this checklist after task 1 builds to verify the Flutter shell before implementing deeper flows.
+任务 1 构建完成后，用这份清单验证 Flutter 外壳、首页导航和基础空态，再进入后续更深的业务流程。
 
-## Startup
+## 启动
 
-- [ ] App installs and starts on an Android emulator or phone.
-- [ ] First screen is the home page.
-- [ ] No debug counter/demo Flutter content is visible.
-- [ ] Portrait phone layout has no obvious overflow.
+- [ ] App 可以安装并在 Android 模拟器或真机启动。
+- [ ] 首屏进入首页。
+- [ ] 看不到 Flutter 默认计数器或 demo 内容。
+- [ ] 手机竖屏下没有明显溢出、遮挡或文字重叠。
 
-## Home
+## 首页
 
-- [ ] Top background shows a soft blue-purple-pink gradient only in the upper quarter of the screen.
-- [ ] Lower three quarters of the page remain white or near-white.
-- [ ] Header, three white cards, card shadows, rounded corners, and bottom input bar are visually close to the Pencil home page.
-- [ ] Empty course, todo, and DDL states are shown instead of fake business data.
-- [ ] Tapping the settings icon opens Settings and back returns Home.
-- [ ] Tapping the next-class card opens Schedule placeholder and back returns Home.
-- [ ] Tapping the next-thing card opens Todo placeholder and back returns Home.
-- [ ] Tapping the quick-pick icon opens Next Thing placeholder and back returns Home.
-- [ ] Tapping the DDL card opens Todo placeholder with deadline-filter semantics.
-- [ ] Tapping the search icon opens Todo Search placeholder and back returns Home.
-- [ ] Tapping the bottom input text opens the create-todo bottom sheet.
-- [ ] Create-todo sheet shows the one-line prompt, manual-create entry, goal-split entry, and disabled send button when empty.
-- [ ] Typing into the create-todo sheet enables the send button.
+- [ ] 顶部背景只有屏幕上方约四分之一是柔和蓝紫粉渐变。
+- [ ] 页面下方约四分之三保持纯白或接近纯白。
+- [ ] Header、三张白色卡片、卡片阴影、圆角和底部输入栏整体接近 Pencil 首页原型。
+- [ ] 没有课程、待办或 DDL 时展示空态，不展示伪造业务数据。
+- [ ] 点击右上角设置图标进入设置页，返回后回到首页。
+- [ ] 点击“下一节课”卡片进入课表占位页，返回后回到首页。
+- [ ] 点击“下一件事”卡片进入待办占位页，返回后回到首页。
+- [ ] 点击左下角快速挑选图标进入下一件事占位页，返回后回到首页。
+- [ ] 点击“DDL 提醒”卡片进入待办占位页，并显示已携带 `onlyDeadline=true` 语义。
+- [ ] 点击右下角搜索图标进入待办搜索占位页，返回后回到首页。
+- [ ] 点击底部输入栏文字后弹出创建待办底部浮层。
+- [ ] 创建待办浮层在未输入时展示一句话提示、手动创建入口、大目标拆分入口，发送按钮为禁用态。
+- [ ] 在创建待办浮层输入文字后，发送按钮变为可点击状态。
 
-## Settings
+## 设置页
 
-- [ ] Settings page opens from Home.
-- [ ] The page shows `课表与作息` and `数据与分享` sections.
-- [ ] Not-yet-implemented setting rows are visibly disabled or marked as pending, not presented as completed features.
+- [ ] 设置页可从首页进入。
+- [ ] 页面展示“课表与作息”和“数据与分享”两个分区。
+- [ ] 尚未实现的设置项清楚显示为待后续实现或禁用状态，不伪装成已完成能力。
 
-## Route Shells
+## 路由壳
 
-- [ ] Schedule placeholder can open Add Schedule placeholder.
-- [ ] Todo placeholder can open the create-todo sheet.
-- [ ] All placeholder pages can navigate back.
+- [ ] 课表占位页可以进入添加课表占位页。
+- [ ] 待办占位页可以打开创建待办浮层。
+- [ ] 所有占位页面都可以返回上一页。
 
-## Known Task-1 Limits
+## 任务 1 已知限制
 
-- [ ] No real local persistence is expected yet.
-- [ ] No login, cloud sync, backend calls, or AI behavior is expected yet.
-- [ ] Search, recommendations, schedule grid, todo CRUD, and goal split are placeholders for later roadmap tasks.
+- [ ] 当前不要求真实本地持久化。
+- [ ] 当前不要求登录、云同步、后端调用或真实 AI 能力。
+- [ ] 搜索、推荐、课表网格、待办 CRUD 和大目标拆分仍是后续路线图任务的占位入口。

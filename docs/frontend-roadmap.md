@@ -48,31 +48,35 @@
 若仓库仍未接入 Flutter 工程，任务 1 应创建最小 Flutter Android 工程，并采用接近下列结构：
 
 ```text
-lib/
-  main.dart
-  app/
-    app.dart
-    router.dart
-    theme/
-  core/
-    errors/
-    time/
-    widgets/
-    utils/
-  data/
-    models/
-    repositories/
-    sources/
-      local/
-      mock/
-      remote/
-  features/
-    home/
-    schedule/
-    settings/
-    todo/
-    recommendation/
-    goal_split/
+frontend/
+  lib/
+    main.dart
+    app/
+      app.dart
+      router.dart
+      theme/
+    core/
+      errors/
+      time/
+      widgets/
+      utils/
+    data/
+      models/
+      repositories/
+      sources/
+        local/
+        mock/
+        remote/
+    features/
+      home/
+      schedule/
+      settings/
+      todo/
+      recommendation/
+      goal_split/
+  android/
+  test/
+  pubspec.yaml
 ```
 
 状态管理、路由和本地存储方案可由实现 Agent 根据工程实际选择，但必须满足：

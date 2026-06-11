@@ -1,0 +1,30 @@
+name: nju_timenote
+description: NJU Timenote Flutter frontend.
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    - family: Source Han Serif SC
+      fonts:
+        - asset: assets/fonts/SourceHanSerifSC-Regular.otf
+          weight: 400
+        - asset: assets/fonts/SourceHanSerifSC-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/SourceHanSerifSC-Bold.otf
+          weight: 700

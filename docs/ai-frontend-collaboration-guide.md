@@ -128,28 +128,32 @@ AI 应在计划阶段提出问题，例如：
 初始结构可以按 feature 拆分：
 
 ```text
-lib/
-  main.dart
-  app/
-    app.dart
-    router.dart
-    theme/
-  core/
-    network/
-    errors/
-    widgets/
-    utils/
-  features/
-    home/
-    schedule/
-    todo/
-    recommendation/
-  data/
-    models/
-    repositories/
-    sources/
-      remote/
-      mock/
+frontend/
+  lib/
+    main.dart
+    app/
+      app.dart
+      router.dart
+      theme/
+    core/
+      network/
+      errors/
+      widgets/
+      utils/
+    features/
+      home/
+      schedule/
+      todo/
+      recommendation/
+    data/
+      models/
+      repositories/
+      sources/
+        remote/
+        mock/
+  android/
+  test/
+  pubspec.yaml
 ```
 
 原则：
