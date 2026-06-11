@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../features/goal_split/goal_split_placeholder_page.dart';
 import '../features/home/home_page.dart';
 import '../features/recommendation/next_thing_page.dart';
-import '../features/schedule/add_schedule_placeholder_page.dart';
-import '../features/schedule/schedule_placeholder_page.dart';
+import '../features/schedule/add_schedule_page.dart';
+import '../features/schedule/manual_course_page.dart';
+import '../features/schedule/schedule_page.dart';
+import '../features/schedule/screenshot_course_page.dart';
 import '../features/settings/settings_page.dart';
 import '../features/todo/todo_detail_placeholder_page.dart';
 import '../features/todo/todo_list_placeholder_page.dart';
@@ -17,6 +19,8 @@ class AppRoutes {
   static const settings = '/settings';
   static const schedule = '/schedule';
   static const scheduleAdd = '/schedule/add';
+  static const scheduleAddManual = '/schedule/add/manual';
+  static const scheduleAddScreenshot = '/schedule/add/screenshot';
   static const todos = '/todos';
   static const todoDetail = '/todos/detail';
   static const todoSearch = '/todos/search';
@@ -54,9 +58,13 @@ class AppRouter {
       case AppRoutes.settings:
         page = const SettingsPage();
       case AppRoutes.schedule:
-        page = const SchedulePlaceholderPage();
+        page = const SchedulePage();
       case AppRoutes.scheduleAdd:
-        page = const AddSchedulePlaceholderPage();
+        page = const AddSchedulePage();
+      case AppRoutes.scheduleAddManual:
+        page = const ManualCoursePage();
+      case AppRoutes.scheduleAddScreenshot:
+        page = const ScreenshotCoursePage();
       case AppRoutes.todos:
         final args = settings.arguments;
         page = TodoListPlaceholderPage(

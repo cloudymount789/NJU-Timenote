@@ -1,0 +1,126 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nju_timenote/data/models/course.dart';
+import 'package:nju_timenote/data/sources/local/local_course_source.dart';
+import 'package:nju_timenote/features/schedule/schedule_page.dart';
+
+void main() {
+  test('Course serializes and deserializes with contract field names', () {
+    final now = DateTime.parse('2026-06-12T08:00:00+08:00');
+    final course = Course(
+      id: 'course-1',
+      name: '课程',
+      teacher: '老师',
+      location: '教室',
+      note: '备注',
+      dayOfWeek: 1,
+      startPeriod: 1,
+      endPeriod: 2,
+      weekRule: WeekRule.all,
+      startWeek: 1,
+      endWeek: 16,
+      colorKey: 'blue',
+      source: CourseSource.manual,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    final json = course.toJson();
+    expect(json['weekRule'], 'all');
+    expect(json['source'], 'manual');
+    expect(Course.fromJson(json).name, '课程');
+  });
+
+  test('local source filters by week rule and keeps stable colors', () async {
+    final source = LocalCourseSource();
+    final first = await source.createCourse(
+      const CourseDraft(
+        name: '高等数学',
+        teacher: '',
+        location: '仙 I-101',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.odd,
+        startWeek: 1,
+        endWeek: 5,
+      ),
+    );
+    final second = await source.createCourse(
+      const CourseDraft(
+        name: '高等数学',
+        teacher: '另一位老师',
+        location: '仙 I-102',
+        note: '',
+        dayOfWeek: 3,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 25,
+      ),
+    );
+
+    expect(first.colorKey, second.colorKey);
+    expect(await source.getCoursesForWeek(1), hasLength(2));
+    expect(await source.getCoursesForWeek(2), hasLength(1));
+  });
+
+  testWidgets('timetable renders spanning and conflicting courses', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final courses = [
+      Course(
+        id: 'course-1',
+        name: '跨节课程',
+        teacher: '',
+        location: 'A',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 3,
+        endPeriod: 6,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+        colorKey: 'blue',
+        source: CourseSource.manual,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      Course(
+        id: 'course-2',
+        name: '冲突课程',
+        teacher: '',
+        location: 'B',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 4,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+        colorKey: 'pink',
+        source: CourseSource.manual,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 390,
+            height: 700,
+            child: TimetableView(courses: courses, onDeleteCourse: (_) {}),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('跨节课程'), findsWidgets);
+    expect(find.text('冲突课程'), findsOneWidget);
+  });
+}

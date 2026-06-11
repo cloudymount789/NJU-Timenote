@@ -48,6 +48,21 @@ class LocalCourseRepository implements CourseRepository {
   Future<Course?> getNextCourse() {
     return _source.getNextCourse();
   }
+
+  @override
+  Future<Course> createCourse(CourseDraft draft) {
+    return _source.createCourse(draft);
+  }
+
+  @override
+  Future<void> deleteCourse(String courseId) {
+    return _source.deleteCourse(courseId);
+  }
+
+  @override
+  String colorKeyForCourseName(String name) {
+    return _source.colorKeyForCourseName(name);
+  }
 }
 
 class LocalTodoRepository implements TodoRepository {

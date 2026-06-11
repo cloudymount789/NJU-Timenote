@@ -30,8 +30,8 @@
 
 ## 数据边界
 
-- `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型。
-- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂。
+- `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft` 和周次匹配规则。
+- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、创建、删除和课程名稳定颜色。
 - `frontend/lib/data/sources/local/`：本地 source 骨架；任务 1 默认返回空状态。
 - `frontend/lib/data/sources/mock/`：mock 边界占位；默认不启用 mock 数据。
 - `frontend/lib/data/sources/remote/`：未来后端边界占位；UI 不得直接调用。
@@ -40,7 +40,10 @@
 
 - `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航。
 - `frontend/lib/features/settings/settings_page.dart`：最小设置入口，包含课表与作息、数据与分享分区。
-- `frontend/lib/features/schedule/`：任务 2 的课表与添加课表占位路由。
+- `frontend/lib/features/schedule/schedule_page.dart`：课表网格、跨节/跨上午下午切割、冲突排列、长按删除。
+- `frontend/lib/features/schedule/add_schedule_page.dart`：添加课表入口页。
+- `frontend/lib/features/schedule/manual_course_page.dart`：手动添加课程表单、周次/节次选择和校验。
+- `frontend/lib/features/schedule/screenshot_course_page.dart`：截图添加课程流程壳，当前提示识别服务未接入。
 - `frontend/lib/features/todo/`：任务 3/4 的待办列表、详情、搜索占位路由。
 - `frontend/lib/features/recommendation/`：任务 4 的下一件事入口。
 - `frontend/lib/features/goal_split/`：任务 4 的大目标拆分入口。
@@ -51,6 +54,7 @@
 - 调整全局颜色、阴影、圆角、字号或字体：改 `frontend/lib/app/theme/` 和对应通用组件。
 - 新增业务数据访问：先定义或扩展 `frontend/lib/data/repositories/`，再通过 source 实现，并在 `RepositoryFactory` 注入。
 - 按原型新增页面：优先复用 `GradientPageScaffold`、`AppHeader`、`AppCard` 和状态视图。
+- 修改课表：优先看 `frontend/lib/features/schedule/`、`frontend/lib/data/models/course.dart`、`frontend/lib/data/sources/local/local_course_source.dart`。
 - 运行检查：进入 `frontend/` 后执行 `dart format lib test`、`flutter analyze`、`flutter test`。
 
 ## 边界
