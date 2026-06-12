@@ -22,20 +22,42 @@ class HomePage extends StatelessWidget {
     final repositories = AppScope.repositoriesOf(context);
 
     return GradientPageScaffold(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pageX,
-          28,
-          AppSpacing.pageX,
-          AppSpacing.pageBottom,
-        ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final height = constraints.maxHeight;
+          final compact = height < 720;
+          final veryCompact = height < 650;
+          final horizontalPadding = veryCompact ? 18.0 : AppSpacing.pageX;
+          final topPadding = veryCompact
+              ? 8.0
+              : compact
+              ? 14.0
+              : 22.0;
+          final headerGap = veryCompact ? 12.0 : 18.0;
+          final cardGap = veryCompact
+              ? 8.0
+              : compact
+              ? 12.0
+              : 16.0;
+          final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+          final bottomGap = bottomInset > 0 ? 12.0 : 18.0;
+          final bottomBarHeight = compact ? 60.0 : 72.0;
+          final bottomReserve = bottomBarHeight + bottomGap + 14;
+
+          return Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                bottom: bottomReserve,
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    topPadding,
+                    horizontalPadding,
+                    0,
+                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       AppHeader(
                         title: '今天也要加油啊',
@@ -49,7 +71,7 @@ class HomePage extends StatelessWidget {
                           size: 32,
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: headerGap),
                       FutureBuilder<Course?>(
                         future: repositories.courses.getNextCourse(),
                         builder: (context, snapshot) {
@@ -58,6 +80,7 @@ class HomePage extends StatelessWidget {
                             title: '下一节课',
                             emptyTitle: '暂时没有下一节课',
                             emptyMessage: '添加课表后，这里会显示即将开始的课程。',
+                            compact: compact,
                             isLoading:
                                 snapshot.connectionState !=
                                 ConnectionState.done,
@@ -68,7 +91,7 @@ class HomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: cardGap),
                       FutureBuilder<TodoItem?>(
                         future: repositories.todos.getNextTodo(),
                         builder: (context, snapshot) {
@@ -77,6 +100,7 @@ class HomePage extends StatelessWidget {
                             title: '下一件事',
                             emptyTitle: '还没有待办',
                             emptyMessage: '记录待办后，这里会提示下一件值得处理的事。',
+                            compact: compact,
                             isLoading:
                                 snapshot.connectionState !=
                                 ConnectionState.done,
@@ -87,13 +111,18 @@ class HomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      const SizedBox(height: 32),
+                      SizedBox(height: cardGap),
                       FutureBuilder<List<TodoItem>>(
                         future: repositories.todos.getTodos(
                           const TodoFilter(onlyDeadline: true),
                         ),
                         builder: (context, snapshot) {
                           return AppCard(
+                            padding: EdgeInsets.all(compact ? 16 : 18),
+                            shadowPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 7,
+                            ),
                             onTap: () => Navigator.of(context).pushNamed(
                               AppRoutes.todos,
                               arguments: const TodoListRouteArgs(
@@ -126,10 +155,13 @@ class HomePage extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: compact ? 10 : 12),
                                 Container(
                                   width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: compact ? 10 : 12,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.surfaceSoft,
                                     borderRadius: BorderRadius.circular(8),
@@ -140,10 +172,8 @@ class HomePage extends StatelessWidget {
                                       ? const LoadingState()
                                       : snapshot.hasError
                                       ? const ErrorState(message: '无法读取截止提醒。')
-                                      : const EmptyState(
-                                          title: '暂无临近截止事项',
-                                          message: '有 DDL 的待办会集中显示在这里。',
-                                          icon: Icons.hourglass_empty_outlined,
+                                      : _CompactDeadlineEmptyState(
+                                          compact: compact,
                                         ),
                                 ),
                               ],
@@ -151,24 +181,26 @@ class HomePage extends StatelessWidget {
                           );
                         },
                       ),
-                      const Spacer(),
-                      const SizedBox(height: 24),
-                      AppBottomInputBar(
-                        onInputTap: () => showCreateTodoSheet(context),
-                        onSearchTap: () => Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.todoSearch),
-                        onQuickPickTap: () => Navigator.of(
-                          context,
-                        ).pushNamed(AppRoutes.nextThing),
-                      ),
                     ],
                   ),
                 ),
               ),
-            );
-          },
-        ),
+              Positioned(
+                left: horizontalPadding,
+                right: horizontalPadding,
+                bottom: bottomGap + bottomInset,
+                child: AppBottomInputBar(
+                  compact: compact,
+                  onInputTap: () => showCreateTodoSheet(context),
+                  onSearchTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.todoSearch),
+                  onQuickPickTap: () =>
+                      Navigator.of(context).pushNamed(AppRoutes.nextThing),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -180,6 +212,7 @@ class _HomeNavCard extends StatelessWidget {
     required this.title,
     required this.emptyTitle,
     required this.emptyMessage,
+    required this.compact,
     required this.isLoading,
     required this.hasError,
     required this.onTap,
@@ -189,6 +222,7 @@ class _HomeNavCard extends StatelessWidget {
   final String title;
   final String emptyTitle;
   final String emptyMessage;
+  final bool compact;
   final bool isLoading;
   final bool hasError;
   final VoidCallback onTap;
@@ -197,11 +231,13 @@ class _HomeNavCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppCard(
       onTap: onTap,
+      padding: EdgeInsets.all(compact ? 16 : 18),
+      shadowPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: compact ? 46 : 52,
+            height: compact ? 46 : 52,
             decoration: const BoxDecoration(
               color: AppColors.surfaceSoft,
               shape: BoxShape.circle,
@@ -224,7 +260,7 @@ class _HomeNavCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: compact ? 4 : 6),
                       Text(
                         emptyTitle,
                         maxLines: 1,
@@ -235,7 +271,7 @@ class _HomeNavCard extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: compact ? 1 : 2),
                       Text(
                         emptyMessage,
                         maxLines: 2,
@@ -252,6 +288,44 @@ class _HomeNavCard extends StatelessWidget {
           const Icon(Icons.chevron_right, color: AppColors.line, size: 18),
         ],
       ),
+    );
+  }
+}
+
+class _CompactDeadlineEmptyState extends StatelessWidget {
+  const _CompactDeadlineEmptyState({required this.compact});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.hourglass_empty_outlined,
+          size: compact ? 28 : 32,
+          color: AppColors.subtle,
+        ),
+        SizedBox(height: compact ? 6 : 8),
+        const Text(
+          '暂无临近截止事项',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: AppColors.muted,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: compact ? 3 : 5),
+        const Text(
+          '有 DDL 的待办会集中显示在这里。',
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: AppColors.subtle, fontSize: 13),
+        ),
+      ],
     );
   }
 }

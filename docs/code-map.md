@@ -21,7 +21,7 @@
 - `frontend/lib/core/widgets/gradient_page_scaffold.dart`：统一页面基底；顶部 225px 蓝紫粉柔和渐变，其余白底。
 - `frontend/lib/core/widgets/app_header.dart`：页面标题/header。
 - `frontend/lib/core/widgets/app_card.dart`：白色卡片和原型风格阴影。
-- `frontend/lib/core/widgets/app_bottom_input_bar.dart`：快速挑选、一句话输入和搜索底部栏。
+- `frontend/lib/core/widgets/app_bottom_input_bar.dart`：快速挑选、一句话输入和搜索底部栏；支持紧凑尺寸，供首页等固定底栏场景使用。
 - `frontend/lib/core/widgets/create_todo_sheet.dart`：创建待办底部浮层；支持一句话创建、手动创建和大目标拆分入口。
 - `frontend/lib/core/widgets/app_dialogs.dart`：确认弹窗和滚轮选择器壳。
 - `frontend/lib/core/widgets/right_sidebar_shell.dart`：右侧侧栏壳。
@@ -39,7 +39,7 @@
 
 ## 功能页面
 
-- `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航。
+- `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航；首页为非滚动布局，底部一句话输入栏通过 `Stack` 固定在屏幕底部上层。
 - `frontend/lib/features/settings/settings_page.dart`：最小设置入口，包含课表与作息、数据与分享分区。
 - `frontend/lib/features/schedule/schedule_page.dart`：课表网格、周切换、周几日期、跨节/跨上午下午切割、冲突排列、点击编辑、长按删除。
 - `frontend/lib/features/schedule/add_schedule_page.dart`：添加课表入口页。

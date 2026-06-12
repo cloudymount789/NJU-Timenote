@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 import '../../app/theme/app_colors.dart';
 
@@ -23,7 +22,7 @@ class GradientPageScaffold extends StatelessWidget {
             left: 0,
             right: 0,
             top: 0,
-            height: MediaQuery.sizeOf(context).height * 0.34,
+            height: MediaQuery.sizeOf(context).height * 0.38,
             child: const _TopGradientBackground(),
           ),
           SafeArea(top: safeTop, child: child),
@@ -89,22 +88,19 @@ class _TopGradientBackground extends StatelessWidget {
         Positioned(
           left: 0,
           right: 0,
-          bottom: -1,
-          height: 120,
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0),
-                    Colors.white.withValues(alpha: 0.76),
-                    Colors.white,
-                  ],
-                  stops: const [0, 0.58, 1],
-                ),
+          bottom: 0,
+          height: 150,
+          child: const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x00FFFFFF),
+                  Color(0xCCFFFFFF),
+                  Color(0xFFFFFFFF),
+                ],
+                stops: [0, 0.64, 1],
               ),
             ),
           ),

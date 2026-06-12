@@ -23,7 +23,6 @@ void main() {
     await tester.pumpWidget(const TimenoteApp());
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(find.text('智能一句话添加待办...'), 120);
     await tester.tap(find.text('智能一句话添加待办...'));
     await tester.pumpAndSettle();
 

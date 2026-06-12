@@ -8,12 +8,14 @@ class AppBottomInputBar extends StatelessWidget {
     required this.onInputTap,
     required this.onSearchTap,
     required this.onQuickPickTap,
+    this.compact = false,
     super.key,
   });
 
   final VoidCallback onInputTap;
   final VoidCallback onSearchTap;
   final VoidCallback onQuickPickTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,10 @@ class AppBottomInputBar extends StatelessWidget {
         boxShadow: AppShadows.card,
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 14 : 18,
+          vertical: compact ? 10 : 14,
+        ),
         child: Row(
           children: [
             _CircleButton(
@@ -41,32 +46,37 @@ class AppBottomInputBar extends StatelessWidget {
                   Color(0xFFF5F0FF),
                 ],
               ),
+              size: compact ? 36 : 40,
+              iconSize: compact ? 18 : 20,
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: compact ? 10 : 14),
             Expanded(
               child: InkWell(
                 onTap: onInputTap,
                 borderRadius: BorderRadius.circular(12),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: compact ? 8 : 10),
                   child: Text(
                     '智能一句话添加待办...',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: AppColors.subtle, fontSize: 15),
+                    style: TextStyle(
+                      color: AppColors.subtle,
+                      fontSize: compact ? 14 : 15,
+                    ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: compact ? 10 : 14),
             _CircleButton(
               icon: Icons.search,
               tooltip: '搜索待办',
               onTap: onSearchTap,
               foreground: Colors.white,
               color: const Color(0xFF0052D9),
-              size: 44,
-              iconSize: 22,
+              size: compact ? 40 : 44,
+              iconSize: compact ? 20 : 22,
             ),
           ],
         ),
