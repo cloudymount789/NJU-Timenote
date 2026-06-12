@@ -27,20 +27,32 @@ class HomePage extends StatelessWidget {
           final height = constraints.maxHeight;
           final compact = height < 720;
           final veryCompact = height < 650;
-          final horizontalPadding = veryCompact ? 18.0 : AppSpacing.pageX;
+          final horizontalPadding = veryCompact
+              ? 18.0
+              : compact
+              ? AppSpacing.pageX
+              : 28.0;
           final topPadding = veryCompact
               ? 8.0
               : compact
-              ? 14.0
-              : 22.0;
-          final headerGap = veryCompact ? 12.0 : 18.0;
+              ? 18.0
+              : 48.0;
+          final headerGap = veryCompact
+              ? 12.0
+              : compact
+              ? 16.0
+              : 24.0;
           final cardGap = veryCompact
               ? 8.0
               : compact
               ? 12.0
-              : 16.0;
+              : 14.0;
           final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-          final bottomGap = bottomInset > 0 ? 12.0 : 18.0;
+          final bottomGap = bottomInset > 0
+              ? 12.0
+              : compact
+              ? 18.0
+              : 24.0;
           final bottomBarHeight = compact ? 60.0 : 72.0;
           final bottomReserve = bottomBarHeight + bottomGap + 14;
 
@@ -118,7 +130,7 @@ class HomePage extends StatelessWidget {
                         ),
                         builder: (context, snapshot) {
                           return AppCard(
-                            padding: EdgeInsets.all(compact ? 16 : 18),
+                            padding: EdgeInsets.all(compact ? 16 : 20),
                             shadowPadding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 7,
@@ -231,7 +243,7 @@ class _HomeNavCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppCard(
       onTap: onTap,
-      padding: EdgeInsets.all(compact ? 16 : 18),
+      padding: EdgeInsets.all(compact ? 16 : 20),
       shadowPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       child: Row(
         children: [
