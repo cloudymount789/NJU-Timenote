@@ -599,7 +599,7 @@ class _TodoRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    _meta(todo),
+                    todoListMetaText(todo),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -641,47 +641,81 @@ class _TodoRow extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _meta(TodoItem todo) {
-    switch (todo.kind) {
-      case TodoKind.duration:
-        return _formatRange(todo.startAt, todo.endAt);
-      case TodoKind.deadline:
-        return 'DDL: ${_formatDateTime(todo.deadlineAt)}';
-      case TodoKind.normal:
-        return todo.tags.isEmpty ? '普通待办' : todo.tags.join(' · ');
-    }
+String todoListMetaText(TodoItem todo) {
+  if (todo.isRecurring) {
+    return switch (todo.kind) {
+      TodoKind.duration => _repeatDurationMeta(todo),
+      TodoKind.deadline => _repeatDeadlineMeta(todo),
+      TodoKind.normal => '重复 普通待办',
+    };
   }
+  return switch (todo.kind) {
+    TodoKind.duration => _formatRange(todo.startAt, todo.endAt),
+    TodoKind.deadline => 'DDL: ${_formatDateTime(todo.deadlineAt)}',
+    TodoKind.normal => todo.tags.isEmpty ? '普通待办' : todo.tags.join(' · '),
+  };
+}
 
-  String _formatDateTime(DateTime? value) {
-    if (value == null) {
-      return '未设置';
-    }
-    return '${value.month}.${value.day} ${_weekday(value)} '
-        '${value.hour.toString().padLeft(2, '0')}:'
-        '${value.minute.toString().padLeft(2, '0')}';
+String _repeatDeadlineMeta(TodoItem todo) {
+  final deadline = todo.deadlineAt;
+  if (deadline == null) {
+    return '重复 DDL：未设置';
   }
+  final time = _formatTime(deadline);
+  return switch (todo.repeatRule) {
+    RepeatRule.once => 'DDL: ${_formatDateTime(deadline)}',
+    RepeatRule.daily => '重复 DDL：每天 $time',
+    RepeatRule.weekly => '重复 DDL：每周 ${_weekday(deadline)} $time',
+    RepeatRule.biweekly => '重复 DDL：每两周 ${_weekday(deadline)} $time',
+  };
+}
 
-  String _formatRange(DateTime? start, DateTime? end) {
-    if (start == null || end == null) {
-      return '未设置';
-    }
-    final startText = _formatDateTime(start);
-    final endTime =
-        '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
-    if (_sameDay(start, end)) {
-      return '$startText-$endTime';
-    }
-    return '$startText - ${_formatDateTime(end)}';
+String _repeatDurationMeta(TodoItem todo) {
+  final start = todo.startAt;
+  final end = todo.endAt;
+  if (start == null || end == null) {
+    return '重复 未设置';
   }
+  final range = '${_formatTime(start)} - ${_formatTime(end)}';
+  return switch (todo.repeatRule) {
+    RepeatRule.once => _formatRange(start, end),
+    RepeatRule.daily => '重复 每天 $range',
+    RepeatRule.weekly => '重复 每${_weekday(start)} $range',
+    RepeatRule.biweekly => '重复 每两周 ${_weekday(start)} $range',
+  };
+}
 
-  String _weekday(DateTime value) {
-    return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][value.weekday - 1];
+String _formatDateTime(DateTime? value) {
+  if (value == null) {
+    return '未设置';
   }
+  return '${value.month}.${value.day} ${_weekday(value)} ${_formatTime(value)}';
+}
 
-  bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+String _formatRange(DateTime? start, DateTime? end) {
+  if (start == null || end == null) {
+    return '未设置';
   }
+  final startText = _formatDateTime(start);
+  if (_sameDay(start, end)) {
+    return '$startText-${_formatTime(end)}';
+  }
+  return '$startText - ${_formatDateTime(end)}';
+}
+
+String _formatTime(DateTime value) {
+  return '${value.hour.toString().padLeft(2, '0')}:'
+      '${value.minute.toString().padLeft(2, '0')}';
+}
+
+String _weekday(DateTime value) {
+  return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][value.weekday - 1];
+}
+
+bool _sameDay(DateTime a, DateTime b) {
+  return a.year == b.year && a.month == b.month && a.day == b.day;
 }
 
 class _BatchActionBar extends StatelessWidget {

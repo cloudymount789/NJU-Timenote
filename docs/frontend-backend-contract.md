@@ -77,6 +77,7 @@
 | `kind = "duration"` | 必须提供 `startAt` 和 `endAt`，且 `startAt < endAt` |
 | `kind = "deadline"` | 必须提供 `deadlineAt` |
 | `kind = "normal"` | `startAt`、`endAt`、`deadlineAt` 均应为 `null` |
+| `repeatRule != "once"` | 不生成未来实例；`deadlineAt` 或 `startAt`/`endAt` 仅作为重复时间锚点：`daily` 使用时间部分，`weekly`/`biweekly` 使用周几 + 时间部分 |
 
 ### 2.3 TodoDraft（创建待办请求体）
 
@@ -296,13 +297,16 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 
 ### 4.8 重复待办
 
-当 `repeatRule != "once"` 的待办被标记完成后，前端本地会生成下一条未完成实例：
+`repeatRule != "once"` 的待办是**重复规则/模板**，不是预生成的一组未来待办。前端或后端查询列表时，按当前日期或筛选日期把模板投影成当前周期应出现的 1 条待办：
 
-- `daily`：日期整体后移 1 天
-- `weekly`：日期整体后移 7 天
-- `biweekly`：日期整体后移 14 天
-
-对 `deadline` 待办后移 `deadlineAt`；对 `duration` 待办后移 `startAt` 和 `endAt`。生成的新实例沿用标题、内容、地点、重要程度、tag 与重复规则。
+- `daily`：每天 1 个周期，使用 `deadlineAt` 或 `startAt`/`endAt` 的时间部分。
+- `weekly`：每周 1 个周期，使用 `deadlineAt` 或 `startAt`/`endAt` 的周几 + 时间部分。
+- `biweekly`：每两周 1 个周期，使用 `deadlineAt` 或 `startAt`/`endAt` 的周几 + 时间部分，并以模板时间所在周作为双周锚点。
+- 删除重复待办 = 删除整条重复规则，不能只删除某个投影实例。
+- 完成重复 `deadline` / `normal` 待办时，只记录当前周期完成；下一个周期仍按规则显示。
+- 重复 `deadline` 待办当前周期未完成且超时后，仍保持未完成；进入下一个周期后继续显示下一个周期的投影待办。
+- 重复 `duration` 待办在对应周期的结束时间后自动记录当前周期完成。
+- 重复完成记录只保存 7 天；清理完成记录时不得删除重复规则本身。
 
 ---
 

@@ -22,11 +22,12 @@ class LocalTodoSource {
   ]) async {
     final reference = filter.date ?? clock.now();
     _refreshCompletionState(reference);
-    final todos = _items
-        .map((item) => _projectForReference(item, reference))
-        .where(filter.matches)
-        .toList()
-      ..sort(_compareTodos);
+    final todos =
+        _items
+            .map((item) => _projectForReference(item, reference))
+            .where(filter.matches)
+            .toList()
+          ..sort(_compareTodos);
     return List.unmodifiable(todos);
   }
 
@@ -136,7 +137,9 @@ class LocalTodoSource {
       updatedAt: now,
     );
     _validateItem(updated);
-    final result = updated.isRecurring ? updated : updated.withAutoCompletion(now);
+    final result = updated.isRecurring
+        ? updated
+        : updated.withAutoCompletion(now);
     _items[index] = result;
     if (result.isRecurring && patch.status.isSet) {
       _setRepeatCompletion(result, now, patch.status.value == TodoStatus.done);
@@ -147,6 +150,7 @@ class LocalTodoSource {
   Future<void> deleteTodo(String todoId) async {
     _items.removeAt(_indexOf(todoId));
     _manualOrder.remove(todoId);
+    _repeatCompletions.removeWhere((key, _) => key.split('|').first == todoId);
   }
 
   Future<TodoItem> completeTodo(String todoId) async {
@@ -203,7 +207,9 @@ class LocalTodoSource {
     final ids = todoIds.toSet();
     _items.removeWhere((item) => ids.contains(item.id));
     _manualOrder.removeWhere(ids.contains);
-    _repeatCompletions.removeWhere((key, _) => ids.contains(key.split('|').first));
+    _repeatCompletions.removeWhere(
+      (key, _) => ids.contains(key.split('|').first),
+    );
   }
 
   Future<List<TodoItem>> batchComplete(List<String> todoIds) async {
@@ -306,14 +312,23 @@ class LocalTodoSource {
   DateTime _occurrenceDate(TodoItem item, DateTime reference) {
     final timeSource = item.deadlineAt ?? item.startAt ?? item.createdAt;
     return switch (item.repeatRule) {
-      RepeatRule.once => DateTime(reference.year, reference.month, reference.day),
-      RepeatRule.daily => DateTime(reference.year, reference.month, reference.day),
-      RepeatRule.weekly => _startOfWeek(reference).add(
-        Duration(days: timeSource.weekday - 1),
+      RepeatRule.once => DateTime(
+        reference.year,
+        reference.month,
+        reference.day,
       ),
-      RepeatRule.biweekly => _biweeklyCycleStart(timeSource, reference).add(
-        Duration(days: timeSource.weekday - 1),
+      RepeatRule.daily => DateTime(
+        reference.year,
+        reference.month,
+        reference.day,
       ),
+      RepeatRule.weekly => _startOfWeek(
+        reference,
+      ).add(Duration(days: timeSource.weekday - 1)),
+      RepeatRule.biweekly => _biweeklyCycleStart(
+        timeSource,
+        reference,
+      ).add(Duration(days: timeSource.weekday - 1)),
     };
   }
 

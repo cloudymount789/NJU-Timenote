@@ -222,7 +222,13 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       return;
     }
     setState(() {
-      _deadlineAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      _deadlineAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
     });
   }
 

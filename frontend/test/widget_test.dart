@@ -88,7 +88,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('todo-tag-picker')));
+    final tagPicker = find.byKey(const ValueKey('todo-tag-picker'));
+    await tester.ensureVisible(tagPicker);
+    await tester.tap(tagPicker);
     await tester.pumpAndSettle();
 
     expect(find.text('选择 Tag'), findsOneWidget);
@@ -106,7 +108,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('todo-tag-picker')));
+    await tester.ensureVisible(tagPicker);
+    await tester.tap(tagPicker);
     await tester.pumpAndSettle();
 
     expect(find.text('选择 Tag'), findsOneWidget);
