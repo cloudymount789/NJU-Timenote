@@ -22,7 +22,7 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage> {
-  static const _currentWeek = 1;
+  int _currentWeek = 1;
   late Future<List<Course>> _coursesFuture;
 
   @override
@@ -35,6 +35,17 @@ class _SchedulePageState extends State<SchedulePage> {
     _coursesFuture = AppScope.repositoriesOf(
       context,
     ).courses.getCoursesForWeek(_currentWeek);
+  }
+
+  void _changeWeek(int delta) {
+    final next = (_currentWeek + delta).clamp(1, 25);
+    if (next == _currentWeek) {
+      return;
+    }
+    setState(() {
+      _currentWeek = next;
+      _loadCourses();
+    });
   }
 
   Future<void> _deleteCourse(Course course) async {
@@ -79,6 +90,28 @@ class _SchedulePageState extends State<SchedulePage> {
                 size: 36,
               ),
             ),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: '上一周',
+                  onPressed: _currentWeek == 1 ? null : () => _changeWeek(-1),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Text(
+                  '第 $_currentWeek 周',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                IconButton(
+                  tooltip: '下一周',
+                  onPressed: _currentWeek == 25 ? null : () => _changeWeek(1),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: FutureBuilder<List<Course>>(
@@ -104,8 +137,19 @@ class _SchedulePageState extends State<SchedulePage> {
                   }
                   return TimetableView(
                     courses: courses,
+                    week: _currentWeek,
+                    currentDate: now,
                     todayWeekday: now.weekday,
                     onDeleteCourse: _deleteCourse,
+                    onOpenCourse: (course) async {
+                      await Navigator.of(context).pushNamed(
+                        AppRoutes.scheduleAddManual,
+                        arguments: CourseDetailRouteArgs(courseId: course.id),
+                      );
+                      if (mounted) {
+                        setState(_loadCourses);
+                      }
+                    },
                   );
                 },
               ),
@@ -121,6 +165,9 @@ class TimetableView extends StatelessWidget {
   const TimetableView({
     required this.courses,
     required this.onDeleteCourse,
+    required this.onOpenCourse,
+    this.week = 1,
+    this.currentDate,
     this.todayWeekday,
     super.key,
   });
@@ -132,6 +179,9 @@ class TimetableView extends StatelessWidget {
 
   final List<Course> courses;
   final ValueChanged<Course> onDeleteCourse;
+  final ValueChanged<Course> onOpenCourse;
+  final int week;
+  final DateTime? currentDate;
   final int? todayWeekday;
 
   @override
@@ -152,7 +202,14 @@ class TimetableView extends StatelessWidget {
               width: tableWidth,
               child: Column(
                 children: [
-                  _WeekHeader(dayWidth: dayWidth, todayWeekday: todayWeekday),
+                  _WeekHeader(
+                    dayWidth: dayWidth,
+                    todayWeekday: todayWeekday,
+                    dates: _weekDates(
+                      currentDate ?? DateTime(2026, 6, 12),
+                      week,
+                    ),
+                  ),
                   Expanded(
                     child: SingleChildScrollView(
                       child: SizedBox(
@@ -217,29 +274,48 @@ class TimetableView extends StatelessWidget {
             item.start == segment.start &&
             item.end == segment.end,
       );
-      final blockWidth = (dayWidth - 4) / conflictCount;
+      final blockWidth = (dayWidth - 1.5) / conflictCount;
       return Positioned(
         left:
             (segment.course.dayOfWeek - 1) * dayWidth +
-            2 +
+            0.75 +
             math.max(0, conflictIndex) * blockWidth,
-        top: (segment.start - 1) * rowHeight + 3,
-        width: blockWidth - 2,
-        height: (segment.end - segment.start + 1) * rowHeight - 6,
+        top: (segment.start - 1) * rowHeight + 1.5,
+        width: blockWidth - 1.5,
+        height: (segment.end - segment.start + 1) * rowHeight - 3,
         child: _CourseBlock(
           segment: segment,
+          onTap: () => onOpenCourse(segment.course),
           onLongPress: () => onDeleteCourse(segment.course),
         ),
       );
     }).toList();
   }
+
+  List<DateTime> _weekDates(DateTime now, int week) {
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final targetMonday = monday.add(Duration(days: (week - 1) * 7));
+    return [
+      for (var index = 0; index < 7; index += 1)
+        targetMonday.add(Duration(days: index)),
+    ];
+  }
 }
 
 class _WeekHeader extends StatelessWidget {
-  const _WeekHeader({required this.dayWidth, required this.todayWeekday});
+  const _WeekHeader({
+    required this.dayWidth,
+    required this.todayWeekday,
+    required this.dates,
+  });
 
   final double dayWidth;
   final int? todayWeekday;
+  final List<DateTime> dates;
 
   @override
   Widget build(BuildContext context) {
@@ -263,21 +339,33 @@ class _WeekHeader extends StatelessWidget {
                         : null,
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 4,
-                    ),
-                    child: Text(
-                      '周${TimetableView.weekdays[index]}',
-                      style: TextStyle(
-                        color: todayWeekday == index + 1
-                            ? AppColors.primary
-                            : AppColors.muted,
-                        fontSize: 12,
-                        fontWeight: todayWeekday == index + 1
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                      ),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '周${TimetableView.weekdays[index]}',
+                          style: TextStyle(
+                            color: todayWeekday == index + 1
+                                ? AppColors.primary
+                                : AppColors.muted,
+                            fontSize: 12,
+                            fontWeight: todayWeekday == index + 1
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          _dateText(dates[index]),
+                          style: TextStyle(
+                            color: todayWeekday == index + 1
+                                ? AppColors.primary
+                                : AppColors.subtle,
+                            fontSize: 9,
+                            height: 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -404,15 +492,21 @@ class _CourseSegment {
 }
 
 class _CourseBlock extends StatelessWidget {
-  const _CourseBlock({required this.segment, required this.onLongPress});
+  const _CourseBlock({
+    required this.segment,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   final _CourseSegment segment;
+  final VoidCallback onTap;
   final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final course = segment.course;
     return GestureDetector(
+      onTap: onTap,
       onLongPress: onLongPress,
       child: DecoratedBox(
         decoration: BoxDecoration(
@@ -421,29 +515,45 @@ class _CourseBlock extends StatelessWidget {
           border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(5),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                course.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                course.location,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: AppColors.muted, fontSize: 9),
-              ),
-            ],
+          padding: const EdgeInsets.all(4),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 34;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    flex: narrow ? 1 : 2,
+                    child: Text(
+                      course.name,
+                      maxLines: narrow ? 2 : 4,
+                      overflow: TextOverflow.fade,
+                      style: const TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.15,
+                      ),
+                    ),
+                  ),
+                  if (!narrow) ...[
+                    const SizedBox(height: 3),
+                    Flexible(
+                      child: Text(
+                        course.location,
+                        maxLines: 3,
+                        overflow: TextOverflow.fade,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 9,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -457,4 +567,9 @@ class _CourseBlock extends StatelessWidget {
       _ => AppColors.courseBlue,
     };
   }
+}
+
+String _dateText(DateTime date) {
+  return '${date.month.toString().padLeft(2, '0')}/'
+      '${date.day.toString().padLeft(2, '0')}';
 }

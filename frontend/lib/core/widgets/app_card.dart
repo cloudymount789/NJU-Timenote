@@ -9,6 +9,7 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.padding = const EdgeInsets.all(20),
     this.radius = 16,
+    this.shadowPadding = const EdgeInsets.all(8),
     super.key,
   });
 
@@ -16,6 +17,7 @@ class AppCard extends StatelessWidget {
   final VoidCallback? onTap;
   final EdgeInsetsGeometry padding;
   final double radius;
+  final EdgeInsetsGeometry shadowPadding;
 
   @override
   Widget build(BuildContext context) {
@@ -28,17 +30,17 @@ class AppCard extends StatelessWidget {
       child: Padding(padding: padding, child: child),
     );
 
-    if (onTap == null) {
-      return card;
-    }
+    final wrapped = onTap == null
+        ? card
+        : Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(radius),
+              child: card,
+            ),
+          );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(radius),
-        child: card,
-      ),
-    );
+    return Padding(padding: shadowPadding, child: wrapped);
   }
 }

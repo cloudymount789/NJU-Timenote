@@ -32,6 +32,12 @@ class AppRoutes {
   static const goalSplit = '/todos/goal-split';
 }
 
+class CourseDetailRouteArgs {
+  const CourseDetailRouteArgs({this.courseId});
+
+  final String? courseId;
+}
+
 class TodoListRouteArgs {
   const TodoListRouteArgs({this.onlyDeadline = false});
 
@@ -60,7 +66,7 @@ class RecommendationRouteArgs {
 class AppRouter {
   const AppRouter._();
 
-  static Route<void> onGenerateRoute(RouteSettings settings) {
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     Widget page;
     switch (settings.name) {
       case AppRoutes.home:
@@ -72,7 +78,10 @@ class AppRouter {
       case AppRoutes.scheduleAdd:
         page = const AddSchedulePage();
       case AppRoutes.scheduleAddManual:
-        page = const ManualCoursePage();
+        final args = settings.arguments;
+        page = ManualCoursePage(
+          courseId: args is CourseDetailRouteArgs ? args.courseId : null,
+        );
       case AppRoutes.scheduleAddScreenshot:
         page = const ScreenshotCoursePage();
       case AppRoutes.todos:

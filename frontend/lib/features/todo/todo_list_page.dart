@@ -5,6 +5,7 @@ import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_bottom_input_bar.dart';
 import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_icon_button.dart';
 import '../../core/widgets/create_todo_sheet.dart';
@@ -107,6 +108,48 @@ class _TodoListPageState extends State<TodoListPage> {
     }
   }
 
+  bool get _isFilterActive {
+    const initial = TodoFilter();
+    return _filter.onlyDeadline ||
+        _filter.date != null ||
+        _filter.kinds.length != initial.kinds.length ||
+        !_filter.kinds.every(initial.kinds.contains) ||
+        _filter.statuses.length != initial.statuses.length ||
+        !_filter.statuses.every(initial.statuses.contains) ||
+        _filter.tags.isNotEmpty;
+  }
+
+  Future<void> _smartSort() async {
+    final confirmed = await showAppConfirmDialog(
+      context: context,
+      title: '启用智能排序？',
+      message: '这将覆盖现有手动排序，并按重要程度、截止/开始时间等重新排列待办。',
+      confirmText: '排序',
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    await AppScope.repositoriesOf(context).todos.smartSortTodos();
+    if (mounted) {
+      _refresh();
+    }
+  }
+
+  Future<void> _reorderVisible(int oldIndex, int newIndex) async {
+    final repo = AppScope.repositoriesOf(context).todos;
+    final todos = await (_future ?? Future.value(const <TodoItem>[]));
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final ordered = [...todos];
+    final moved = ordered.removeAt(oldIndex);
+    ordered.insert(newIndex, moved);
+    await repo.reorderTodos(ordered.map((todo) => todo.id).toList());
+    if (mounted) {
+      _refresh();
+    }
+  }
+
   Future<void> _batchComplete() async {
     if (_selectedIds.isEmpty) {
       return;
@@ -158,9 +201,7 @@ class _TodoListPageState extends State<TodoListPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showAppSnackBar(context, message);
   }
 
   @override
@@ -195,12 +236,21 @@ class _TodoListPageState extends State<TodoListPage> {
                       icon: Icons.filter_alt_outlined,
                       tooltip: '筛选',
                       onPressed: _openFilter,
+                      iconColor: _isFilterActive
+                          ? AppColors.primary
+                          : AppColors.ink,
                     ),
                     const SizedBox(width: 8),
                     AppIconButton(
                       icon: Icons.checklist,
                       tooltip: '批量操作',
                       onPressed: () => setState(() => _batchMode = true),
+                    ),
+                    const SizedBox(width: 8),
+                    AppIconButton(
+                      icon: Icons.auto_awesome_motion_outlined,
+                      tooltip: '智能排序',
+                      onPressed: _smartSort,
                     ),
                   ],
                 ],
@@ -216,6 +266,7 @@ class _TodoListPageState extends State<TodoListPage> {
                     selectedIds: _selectedIds,
                     onTap: _openDetail,
                     onComplete: _complete,
+                    onReorder: _reorderVisible,
                   ),
                   if (_batchMode)
                     Positioned(
@@ -233,7 +284,15 @@ class _TodoListPageState extends State<TodoListPage> {
             if (!_batchMode) ...[
               const SizedBox(height: 12),
               AppBottomInputBar(
-                onInputTap: () => showCreateTodoSheet(context),
+                onInputTap: () async {
+                  final created = await showCreateTodoSheet(
+                    context,
+                    navigateToTodosOnSubmit: false,
+                  );
+                  if (created == true && mounted) {
+                    _refresh();
+                  }
+                },
                 onSearchTap: () =>
                     Navigator.of(context).pushNamed(AppRoutes.todoSearch),
                 onQuickPickTap: () =>
@@ -254,6 +313,7 @@ class _TodoListCard extends StatelessWidget {
     required this.selectedIds,
     required this.onTap,
     required this.onComplete,
+    required this.onReorder,
   });
 
   final Future<List<TodoItem>> future;
@@ -261,6 +321,7 @@ class _TodoListCard extends StatelessWidget {
   final Set<String> selectedIds;
   final ValueChanged<TodoItem> onTap;
   final ValueChanged<TodoItem> onComplete;
+  final void Function(int oldIndex, int newIndex) onReorder;
 
   @override
   Widget build(BuildContext context) {
@@ -297,8 +358,48 @@ class _TodoListCard extends StatelessWidget {
             );
           }
           var openIndex = 0;
+          if (batchMode) {
+            return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(18, 10, 18, 4),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '长按左侧三条杠可拖拽调整顺序',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ReorderableListView.builder(
+                    padding: const EdgeInsets.fromLTRB(0, 0, 8, 96),
+                    buildDefaultDragHandles: false,
+                    itemCount: todos.length,
+                    onReorderItem: onReorder,
+                    itemBuilder: (context, index) {
+                      final todo = todos[index];
+                      final number = todo.status == TodoStatus.open
+                          ? ++openIndex
+                          : null;
+                      return _TodoRow(
+                        key: ValueKey(todo.id),
+                        todo: todo,
+                        index: index,
+                        number: number,
+                        batchMode: batchMode,
+                        selected: selectedIds.contains(todo.id),
+                        onTap: () => onTap(todo),
+                        onComplete: () => onComplete(todo),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          }
           return ListView.separated(
-            padding: EdgeInsets.fromLTRB(0, 8, 8, batchMode ? 96 : 8),
+            padding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
             itemCount: todos.length,
             separatorBuilder: (_, _) => const Divider(height: 1, indent: 54),
             itemBuilder: (context, index) {
@@ -308,6 +409,7 @@ class _TodoListCard extends StatelessWidget {
                   : null;
               return _TodoRow(
                 todo: todo,
+                index: index,
                 number: number,
                 batchMode: batchMode,
                 selected: selectedIds.contains(todo.id),
@@ -325,14 +427,17 @@ class _TodoListCard extends StatelessWidget {
 class _TodoRow extends StatelessWidget {
   const _TodoRow({
     required this.todo,
+    required this.index,
     required this.number,
     required this.batchMode,
     required this.selected,
     required this.onTap,
     required this.onComplete,
+    super.key,
   });
 
   final TodoItem todo;
+  final int index;
   final int? number;
   final bool batchMode;
   final bool selected;
@@ -350,7 +455,15 @@ class _TodoRow extends StatelessWidget {
           children: [
             SizedBox(
               width: 34,
-              child: number == null
+              child: batchMode
+                  ? ReorderableDelayedDragStartListener(
+                      index: index,
+                      child: const Icon(
+                        Icons.drag_handle,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : number == null
                   ? const SizedBox.shrink()
                   : Text(
                       '$number',
@@ -396,7 +509,12 @@ class _TodoRow extends StatelessWidget {
                 color: selected ? AppColors.primary : AppColors.subtle,
               )
             else if (todo.kind == TodoKind.duration)
-              const Icon(Icons.timelapse, color: AppColors.subtle)
+              const SizedBox(
+                width: 48,
+                child: Center(
+                  child: Icon(Icons.timelapse, color: AppColors.subtle),
+                ),
+              )
             else
               IconButton(
                 tooltip: done ? '取消完成' : '完成',
@@ -415,7 +533,7 @@ class _TodoRow extends StatelessWidget {
   String _meta(TodoItem todo) {
     switch (todo.kind) {
       case TodoKind.duration:
-        return '${_formatDateTime(todo.startAt)} - ${_formatDateTime(todo.endAt)}';
+        return _formatRange(todo.startAt, todo.endAt);
       case TodoKind.deadline:
         return 'DDL: ${_formatDateTime(todo.deadlineAt)}';
       case TodoKind.normal:
@@ -427,9 +545,30 @@ class _TodoRow extends StatelessWidget {
     if (value == null) {
       return '未设置';
     }
-    return '${value.month}.${value.day.toString().padLeft(2, '0')} '
+    return '${value.month}.${value.day} ${_weekday(value)} '
         '${value.hour.toString().padLeft(2, '0')}:'
         '${value.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatRange(DateTime? start, DateTime? end) {
+    if (start == null || end == null) {
+      return '未设置';
+    }
+    final startText = _formatDateTime(start);
+    final endTime =
+        '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+    if (_sameDay(start, end)) {
+      return '$startText-$endTime';
+    }
+    return '$startText - ${_formatDateTime(end)}';
+  }
+
+  String _weekday(DateTime value) {
+    return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][value.weekday - 1];
+  }
+
+  bool _sameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }
 
@@ -503,99 +642,116 @@ class _TodoFilterSidebarState extends State<_TodoFilterSidebar> {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: RightSidebarShell(
-        title: '筛选',
+      child: Stack(
         children: [
-          _SidebarSection(
-            title: '日期',
-            children: [
-              ChoiceChip(
-                label: const Text('全部'),
-                selected: _filter.date == null,
-                onSelected: (_) => setState(
-                  () => _filter = _filter.copyWith(
-                    date: const PatchField.value(null),
-                  ),
-                ),
-              ),
-              ChoiceChip(
-                label: Text(
-                  _filter.date == null ? '选择日期' : _dateText(_filter.date!),
-                ),
-                selected: _filter.date != null,
-                onSelected: (_) async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate:
-                        _filter.date ?? AppScope.clockOf(context).now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2035),
-                  );
-                  if (picked != null) {
-                    setState(
-                      () => _filter = _filter.copyWith(
-                        date: PatchField.value(picked),
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).maybePop(),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {},
+            child: RightSidebarShell(
+              title: '筛选',
+              children: [
+                _SidebarSection(
+                  title: '日期',
+                  children: [
+                    ChoiceChip(
+                      label: const Text('全部'),
+                      selected: _filter.date == null,
+                      onSelected: (_) => setState(
+                        () => _filter = _filter.copyWith(
+                          date: const PatchField.value(null),
+                        ),
                       ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-          _SidebarSection(
-            title: '种类',
-            children: TodoKind.values
-                .map(
-                  (kind) => FilterChip(
-                    label: Text(_kindLabel(kind)),
-                    selected: _filter.kinds.contains(kind),
-                    onSelected: (_) => _toggleKind(kind),
-                  ),
-                )
-                .toList(),
-          ),
-          _SidebarSection(
-            title: '完成情况',
-            children: TodoStatus.values
-                .map(
-                  (status) => FilterChip(
-                    label: Text(status == TodoStatus.open ? '未完成' : '已完成'),
-                    selected: _filter.statuses.contains(status),
-                    onSelected: (_) => _toggleStatus(status),
-                  ),
-                )
-                .toList(),
-          ),
-          _SidebarSection(
-            title: 'Tag',
-            children: [
-              FutureBuilder<List<String>>(
-                future: _tagsFuture ?? Future.value(const <String>[]),
-                builder: (context, snapshot) {
-                  final tags = snapshot.data ?? const [];
-                  return Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: tags
-                        .map(
-                          (tag) => FilterChip(
-                            label: Text(tag),
-                            selected: _filter.tags.contains(tag),
-                            onSelected: (_) => _toggleTag(tag),
+                    ),
+                    ChoiceChip(
+                      label: Text(
+                        _filter.date == null
+                            ? '选择日期'
+                            : _dateText(_filter.date!),
+                      ),
+                      selected: _filter.date != null,
+                      onSelected: (_) async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate:
+                              _filter.date ?? AppScope.clockOf(context).now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2035),
+                        );
+                        if (picked != null) {
+                          setState(
+                            () => _filter = _filter.copyWith(
+                              date: PatchField.value(picked),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                _SidebarSection(
+                  title: '种类',
+                  children: TodoKind.values
+                      .map(
+                        (kind) => FilterChip(
+                          label: Text(_kindLabel(kind)),
+                          selected: _filter.kinds.contains(kind),
+                          onSelected: (_) => _toggleKind(kind),
+                        ),
+                      )
+                      .toList(),
+                ),
+                _SidebarSection(
+                  title: '完成情况',
+                  children: TodoStatus.values
+                      .map(
+                        (status) => FilterChip(
+                          label: Text(
+                            status == TodoStatus.open ? '未完成' : '已完成',
                           ),
-                        )
-                        .toList(),
-                  );
-                },
-              ),
-            ],
-          ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(_filter),
-              child: const Text('应用筛选'),
+                          selected: _filter.statuses.contains(status),
+                          onSelected: (_) => _toggleStatus(status),
+                        ),
+                      )
+                      .toList(),
+                ),
+                _SidebarSection(
+                  title: 'Tag',
+                  children: [
+                    FutureBuilder<List<String>>(
+                      future: _tagsFuture ?? Future.value(const <String>[]),
+                      builder: (context, snapshot) {
+                        final tags = snapshot.data ?? const [];
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: tags
+                              .map(
+                                (tag) => FilterChip(
+                                  label: Text(tag),
+                                  selected: _filter.tags.contains(tag),
+                                  onSelected: (_) => _toggleTag(tag),
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.of(context).pop(_filter),
+                    child: const Text('应用筛选'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

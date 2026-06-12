@@ -4,12 +4,15 @@ import '../../app/app.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../data/models/course.dart';
 
 class ManualCoursePage extends StatefulWidget {
-  const ManualCoursePage({super.key});
+  const ManualCoursePage({this.courseId, super.key});
+
+  final String? courseId;
 
   @override
   State<ManualCoursePage> createState() => _ManualCoursePageState();
@@ -28,6 +31,52 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
   int _startPeriod = 1;
   int _endPeriod = 1;
   bool _saving = false;
+  var _loading = true;
+  var _didLoad = false;
+  String? _error;
+
+  bool get _isEdit => widget.courseId != null;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoad) {
+      return;
+    }
+    _didLoad = true;
+    _loadCourse();
+  }
+
+  Future<void> _loadCourse() async {
+    final id = widget.courseId;
+    if (id == null) {
+      setState(() => _loading = false);
+      return;
+    }
+    final course = await AppScope.repositoriesOf(
+      context,
+    ).courses.getCourseById(id);
+    if (course == null) {
+      setState(() {
+        _loading = false;
+        _error = '课程不存在';
+      });
+      return;
+    }
+    _nameController.text = course.name;
+    _teacherController.text = course.teacher;
+    _locationController.text = course.location;
+    _noteController.text = course.note;
+    setState(() {
+      _weekRule = course.weekRule;
+      _startWeek = course.startWeek;
+      _endWeek = course.endWeek;
+      _dayOfWeek = course.dayOfWeek;
+      _startPeriod = course.startPeriod;
+      _endPeriod = course.endPeriod;
+      _loading = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -52,32 +101,38 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       message = '结束节不能早于起始节。';
     }
     if (message != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      showAppSnackBar(context, message);
       return;
     }
 
     setState(() => _saving = true);
-    await AppScope.repositoriesOf(context).courses.createCourse(
-      CourseDraft(
-        name: name,
-        teacher: _teacherController.text,
-        location: location,
-        note: _noteController.text,
-        dayOfWeek: _dayOfWeek,
-        startPeriod: _startPeriod,
-        endPeriod: _endPeriod,
-        weekRule: _weekRule,
-        startWeek: _startWeek,
-        endWeek: _endWeek,
-      ),
+    final draft = CourseDraft(
+      name: name,
+      teacher: _teacherController.text,
+      location: location,
+      note: _noteController.text,
+      dayOfWeek: _dayOfWeek,
+      startPeriod: _startPeriod,
+      endPeriod: _endPeriod,
+      weekRule: _weekRule,
+      startWeek: _startWeek,
+      endWeek: _endWeek,
     );
+    final repo = AppScope.repositoriesOf(context).courses;
+    if (_isEdit) {
+      await repo.updateCourse(widget.courseId!, draft);
+    } else {
+      await repo.createCourse(draft);
+    }
     if (!mounted) {
       return;
     }
     setState(() => _saving = false);
-    Navigator.of(context).popUntil(ModalRoute.withName('/schedule'));
+    if (_isEdit) {
+      Navigator.of(context).maybePop();
+    } else {
+      Navigator.of(context).popUntil(ModalRoute.withName('/schedule'));
+    }
   }
 
   Future<void> _openWeekPicker() async {
@@ -96,9 +151,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                 title: '选择上课周次',
                 onConfirm: () {
                   if (end < start) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('结束周不能早于起始周。')),
-                    );
+                    showAppSnackBar(context, '结束周不能早于起始周。');
                     return;
                   }
                   setState(() {
@@ -179,9 +232,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                 title: '选择上课时间',
                 onConfirm: () {
                   if (end < start) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('结束节不能早于起始节。')),
-                    );
+                    showAppSnackBar(context, '结束节不能早于起始节。');
                     return;
                   }
                   setState(() {
@@ -259,55 +310,59 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
         child: Column(
           children: [
             AppHeader(
-              title: '手动添加课程',
+              title: _isEdit ? '编辑课程' : '手动添加课程',
               onBack: () => Navigator.of(context).maybePop(),
             ),
             const SizedBox(height: 24),
             Expanded(
-              child: SingleChildScrollView(
-                child: AppCard(
-                  radius: 12,
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _SectionLabel('基础信息'),
-                      _CourseTextField(
-                        label: '课程名称',
-                        controller: _nameController,
-                        required: true,
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(child: Text(_error!))
+                  : SingleChildScrollView(
+                      child: AppCard(
+                        radius: 12,
+                        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _SectionLabel('基础信息'),
+                            _CourseTextField(
+                              label: '课程名称',
+                              controller: _nameController,
+                              required: true,
+                            ),
+                            _CourseTextField(
+                              label: '任课教师',
+                              controller: _teacherController,
+                            ),
+                            _CourseTextField(
+                              label: '地点',
+                              controller: _locationController,
+                              required: true,
+                            ),
+                            _CourseTextField(
+                              label: '备注',
+                              controller: _noteController,
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1, color: AppColors.line),
+                            const SizedBox(height: 18),
+                            const _SectionLabel('时间与节次'),
+                            _PickerRow(
+                              label: '持续周次',
+                              value: _weekText,
+                              onTap: _openWeekPicker,
+                            ),
+                            _PickerRow(
+                              label: '上课时间',
+                              value: _periodText,
+                              onTap: _openPeriodPicker,
+                            ),
+                          ],
+                        ),
                       ),
-                      _CourseTextField(
-                        label: '任课教师',
-                        controller: _teacherController,
-                      ),
-                      _CourseTextField(
-                        label: '地点',
-                        controller: _locationController,
-                        required: true,
-                      ),
-                      _CourseTextField(
-                        label: '备注',
-                        controller: _noteController,
-                      ),
-                      const SizedBox(height: 12),
-                      const Divider(height: 1, color: AppColors.line),
-                      const SizedBox(height: 18),
-                      const _SectionLabel('时间与节次'),
-                      _PickerRow(
-                        label: '持续周次',
-                        value: _weekText,
-                        onTap: _openWeekPicker,
-                      ),
-                      _PickerRow(
-                        label: '上课时间',
-                        value: _periodText,
-                        onTap: _openPeriodPicker,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -315,7 +370,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
               height: 52,
               child: FilledButton(
                 onPressed: _saving ? null : _saveCourse,
-                child: Text(_saving ? '添加中...' : '添加课程'),
+                child: Text(_saving ? '保存中...' : (_isEdit ? '保存课程' : '添加课程')),
               ),
             ),
           ],

@@ -4,6 +4,7 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 
@@ -19,9 +20,7 @@ class _ScreenshotCoursePageState extends State<ScreenshotCoursePage> {
 
   Future<void> _confirm() async {
     if (!_selected) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请先选择一张课表截图。')));
+      showAppSnackBar(context, '请先选择一张课表截图。');
       return;
     }
     await showAppConfirmDialog(

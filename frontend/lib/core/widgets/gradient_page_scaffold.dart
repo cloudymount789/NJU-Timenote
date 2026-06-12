@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import '../../app/theme/app_colors.dart';
 
@@ -18,12 +19,12 @@ class GradientPageScaffold extends StatelessWidget {
       body: Stack(
         children: [
           const Positioned.fill(child: ColoredBox(color: AppColors.surface)),
-          const Positioned(
+          Positioned(
             left: 0,
             right: 0,
             top: 0,
-            height: 225,
-            child: _TopGradientBackground(),
+            height: MediaQuery.sizeOf(context).height * 0.34,
+            child: const _TopGradientBackground(),
           ),
           SafeArea(top: safeTop, child: child),
         ],
@@ -50,9 +51,9 @@ class _TopGradientBackground extends StatelessWidget {
                   AppColors.gradientBlue.withValues(alpha: 0.36),
                   AppColors.gradientPurple.withValues(alpha: 0.28),
                   AppColors.gradientPink.withValues(alpha: 0.24),
-                  Colors.white.withValues(alpha: 0.94),
+                  Colors.white.withValues(alpha: 0.98),
                 ],
-                stops: const [0, 0.42, 0.72, 1],
+                stops: const [0, 0.38, 0.66, 1],
               ),
             ),
           ),
@@ -80,10 +81,33 @@ class _TopGradientBackground extends StatelessWidget {
         ),
         const Positioned(
           left: 36,
-          top: 132,
+          top: 128,
           right: 36,
-          height: 120,
+          height: 150,
           child: _SoftBlob(color: Color(0xEEFFFFFF), blur: 42),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: -1,
+          height: 120,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0),
+                    Colors.white.withValues(alpha: 0.76),
+                    Colors.white,
+                  ],
+                  stops: const [0, 0.58, 1],
+                ),
+              ),
+            ),
+          ),
         ),
       ],
     );

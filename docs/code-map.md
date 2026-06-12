@@ -32,8 +32,8 @@
 ## 数据边界
 
 - `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft` 和周次匹配规则；`todo.dart` 已包含 `TodoItem`、`TodoDraft`、`TodoPatch`、`TodoFilter`、PATCH 字段语义和筛选匹配。
-- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、创建、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、取消完成、完成状态切换、批量删除、批量完成和基础搜索；`RepositoryFactory.local(clock)` 负责把统一时间来源注入本地 source；`QuickTodoRepository` 封装一句话创建边界。
-- `frontend/lib/data/sources/local/`：本地 source；`LocalCourseSource` 维护内存课程列表、课程名稳定颜色、下一节课计算和 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 维护内存待办列表、排序/筛选/duration 自动完成/批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办。
+- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、单条查询、创建、更新、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、取消完成、完成状态切换、手动排序、智能排序、批量删除、批量完成和基础搜索；`RepositoryFactory.local(clock)` 负责把统一时间来源注入本地 source；`QuickTodoRepository` 封装一句话创建边界。
+- `frontend/lib/data/sources/local/`：本地 source；`LocalCourseSource` 维护内存课程列表、课程名稳定颜色、下一节课计算和 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 维护内存待办列表、契约排序、手动排序、智能排序、筛选、重复实例生成、duration 自动完成和批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办。
 - `frontend/lib/data/sources/mock/`：mock 边界占位；默认不启用 mock 数据。
 - `frontend/lib/data/sources/remote/`：未来后端边界占位；UI 不得直接调用。
 
@@ -41,11 +41,11 @@
 
 - `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航。
 - `frontend/lib/features/settings/settings_page.dart`：最小设置入口，包含课表与作息、数据与分享分区。
-- `frontend/lib/features/schedule/schedule_page.dart`：课表网格、跨节/跨上午下午切割、冲突排列、长按删除。
+- `frontend/lib/features/schedule/schedule_page.dart`：课表网格、周切换、周几日期、跨节/跨上午下午切割、冲突排列、点击编辑、长按删除。
 - `frontend/lib/features/schedule/add_schedule_page.dart`：添加课表入口页。
-- `frontend/lib/features/schedule/manual_course_page.dart`：手动添加课程表单、周次/节次选择和校验。
+- `frontend/lib/features/schedule/manual_course_page.dart`：手动添加/编辑课程表单、周次/节次选择和校验。
 - `frontend/lib/features/schedule/screenshot_course_page.dart`：截图添加课程流程壳，当前提示识别服务未接入。
-- `frontend/lib/features/todo/todo_list_page.dart`：待办列表、空态、筛选侧栏、批量模式、三种待办行、底部输入栏入口。
+- `frontend/lib/features/todo/todo_list_page.dart`：待办列表、空态、筛选侧栏、智能排序、批量模式、拖拽排序、三种待办行、底部输入栏入口。
 - `frontend/lib/features/todo/todo_detail_page.dart`：待办新建/编辑详情页、类型切换、时间选择、半星优先级、重复设置、删除确认。
 - `frontend/lib/features/todo/todo_tag_page.dart`：tag 多选和新增 tag 弹窗。
 - `frontend/lib/features/todo/todo_search_page.dart`：待办搜索、历史、清空历史确认、结果列表。

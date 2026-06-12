@@ -2,7 +2,7 @@ enum TodoKind { duration, deadline, normal }
 
 enum TodoStatus { open, done }
 
-enum RepeatRule { once, daily, weekly }
+enum RepeatRule { once, daily, weekly, biweekly }
 
 class PatchField<T> {
   const PatchField.omit() : isSet = false, value = null;
@@ -193,7 +193,7 @@ class TodoPatch {
 class TodoFilter {
   const TodoFilter({
     this.date,
-    this.kinds = const [],
+    this.kinds = const [TodoKind.duration, TodoKind.deadline, TodoKind.normal],
     this.statuses = const [TodoStatus.open, TodoStatus.done],
     this.tags = const [],
     this.onlyDeadline = false,
@@ -209,7 +209,7 @@ class TodoFilter {
     if (onlyDeadline && item.kind != TodoKind.deadline) {
       return false;
     }
-    if (kinds.isNotEmpty && !kinds.contains(item.kind)) {
+    if (!kinds.contains(item.kind)) {
       return false;
     }
     if (!statuses.contains(item.status)) {

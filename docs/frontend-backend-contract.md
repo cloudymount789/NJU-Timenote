@@ -73,7 +73,7 @@
 | `kind` | `"duration"` / `"deadline"` / `"normal"` |
 | `priority` | 0.0 - 5.0（支持半星） |
 | `status` | `"open"` / `"done"` |
-| `repeatRule` | `"once"` / `"daily"` / `"weekly"`（第一阶段只保存，不自动创建重复实例） |
+| `repeatRule` | `"once"` / `"daily"` / `"weekly"` / `"biweekly"` |
 | `kind = "duration"` | 必须提供 `startAt` 和 `endAt`，且 `startAt < endAt` |
 | `kind = "deadline"` | 必须提供 `deadlineAt` |
 | `kind = "normal"` | `startAt`、`endAt`、`deadlineAt` 均应为 `null` |
@@ -293,6 +293,16 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 - `all`：所有周
 - `odd`：N 为奇数
 - `even`：N 为偶数
+
+### 4.8 重复待办
+
+当 `repeatRule != "once"` 的待办被标记完成后，前端本地会生成下一条未完成实例：
+
+- `daily`：日期整体后移 1 天
+- `weekly`：日期整体后移 7 天
+- `biweekly`：日期整体后移 14 天
+
+对 `deadline` 待办后移 `deadlineAt`；对 `duration` 待办后移 `startAt` 和 `endAt`。生成的新实例沿用标题、内容、地点、重要程度、tag 与重复规则。
 
 ---
 

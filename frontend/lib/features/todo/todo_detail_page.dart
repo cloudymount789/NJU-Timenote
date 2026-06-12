@@ -4,6 +4,7 @@ import '../../app/app.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_icon_button.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
@@ -283,9 +284,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showAppSnackBar(context, message);
   }
 
   @override
@@ -590,7 +589,7 @@ String _formatDateTime(DateTime? value) {
   if (value == null) {
     return '未设置';
   }
-  return '${value.year}.${value.month}.${value.day} '
+  return '${value.month}.${value.day} ${_weekday(value)} '
       '${value.hour.toString().padLeft(2, '0')}:'
       '${value.minute.toString().padLeft(2, '0')}';
 }
@@ -600,5 +599,10 @@ String _repeatLabel(RepeatRule rule) {
     RepeatRule.once => '仅一次',
     RepeatRule.daily => '每天',
     RepeatRule.weekly => '每周',
+    RepeatRule.biweekly => '每两周',
   };
+}
+
+String _weekday(DateTime value) {
+  return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][value.weekday - 1];
 }

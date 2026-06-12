@@ -11,6 +11,8 @@ abstract class TodoRepository {
   Future<TodoItem> completeTodo(String todoId);
   Future<TodoItem> reopenTodo(String todoId);
   Future<TodoItem> toggleTodoCompletion(String todoId);
+  Future<void> reorderTodos(List<String> orderedTodoIds);
+  Future<void> smartSortTodos();
   Future<void> batchDelete(List<String> todoIds);
   Future<List<TodoItem>> batchComplete(List<String> todoIds);
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_dialogs.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../data/models/goal_split.dart';
@@ -121,9 +122,7 @@ class _GoalSplitPageState extends State<GoalSplitPage> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    showAppSnackBar(context, message);
   }
 
   @override

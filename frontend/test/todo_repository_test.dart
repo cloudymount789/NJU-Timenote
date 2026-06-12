@@ -17,6 +17,10 @@ void main() {
     const filter = TodoFilter();
 
     expect(filter.statuses, containsAll([TodoStatus.open, TodoStatus.done]));
+    expect(
+      filter.kinds,
+      containsAll([TodoKind.duration, TodoKind.deadline, TodoKind.normal]),
+    );
   });
 
   test(
@@ -147,6 +151,68 @@ void main() {
 
     expect(todo.createdAt, fixedNow);
     expect(todo.updatedAt, fixedNow);
+  });
+
+  test('manual reorder changes visible todo order', () async {
+    final first = await todos.createTodo(const TodoDraft(title: '第一'));
+    final second = await todos.createTodo(const TodoDraft(title: '第二'));
+    final third = await todos.createTodo(const TodoDraft(title: '第三'));
+
+    await todos.reorderTodos([third.id, first.id, second.id]);
+
+    final result = await todos.getTodos();
+    expect(result.map((todo) => todo.id), [third.id, first.id, second.id]);
+  });
+
+  test(
+    'smart sort uses priority before urgency and overwrites manual order',
+    () async {
+      final base = DateTime(2026, 6, 12, 9);
+      final low = await todos.createTodo(
+        TodoDraft(
+          title: '低优先级',
+          kind: TodoKind.deadline,
+          deadlineAt: base,
+          priority: 1,
+        ),
+      );
+      final high = await todos.createTodo(
+        TodoDraft(
+          title: '高优先级',
+          kind: TodoKind.deadline,
+          deadlineAt: base.add(const Duration(days: 3)),
+          priority: 5,
+        ),
+      );
+
+      await todos.reorderTodos([low.id, high.id]);
+      await todos.smartSortTodos();
+
+      final result = await todos.getTodos();
+      expect(result.map((todo) => todo.id).take(2), [high.id, low.id]);
+    },
+  );
+
+  test('biweekly repeat creates next instance when completed', () async {
+    final fixedNow = DateTime(2026, 6, 12, 9, 41);
+    todos = LocalTodoSource(tags, clock: FixedAppClock(fixedNow));
+    final todo = await todos.createTodo(
+      TodoDraft(
+        title: '双周 DDL',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 13, 15, 30),
+        repeatRule: RepeatRule.biweekly,
+      ),
+    );
+
+    await todos.completeTodo(todo.id);
+    final result = await todos.getTodos();
+
+    expect(result, hasLength(2));
+    expect(
+      result.where((item) => item.status == TodoStatus.open).single.deadlineAt,
+      DateTime(2026, 6, 27, 15, 30),
+    );
   });
 
   test(

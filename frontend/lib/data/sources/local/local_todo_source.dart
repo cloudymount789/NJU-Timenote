@@ -12,13 +12,15 @@ class LocalTodoSource {
   final LocalTagSource _tagSource;
   final AppClock clock;
   final List<TodoItem> _items;
+  final List<String> _manualOrder = <String>[];
+  bool _usesManualOrder = false;
   int _counter = 0;
 
   Future<List<TodoItem>> getTodos([
     TodoFilter filter = const TodoFilter(),
   ]) async {
     _autoCompleteExpiredDurations();
-    final todos = _items.where(filter.matches).toList()..sort(compareTodos);
+    final todos = _items.where(filter.matches).toList()..sort(_compareTodos);
     return List.unmodifiable(todos);
   }
 
@@ -41,7 +43,7 @@ class LocalTodoSource {
         ...item.tags,
       ].join(' ').toLowerCase();
       return haystack.contains(normalized);
-    }).toList()..sort(compareTodos);
+    }).toList()..sort(_compareTodos);
     return List.unmodifiable(todos);
   }
 
@@ -71,6 +73,9 @@ class LocalTodoSource {
       updatedAt: now,
     );
     _items.add(todo);
+    if (_usesManualOrder) {
+      _manualOrder.add(todo.id);
+    }
     return todo.withAutoCompletion(now);
   }
 
@@ -116,12 +121,19 @@ class LocalTodoSource {
       updatedAt: now,
     );
     _validateItem(updated);
-    _items[index] = updated;
-    return updated.withAutoCompletion(now);
+    final result = updated.withAutoCompletion(now);
+    _items[index] = result;
+    if (old.status != TodoStatus.done &&
+        result.status == TodoStatus.done &&
+        result.repeatRule != RepeatRule.once) {
+      await _createNextRepeat(result, now);
+    }
+    return result;
   }
 
   Future<void> deleteTodo(String todoId) async {
     _items.removeAt(_indexOf(todoId));
+    _manualOrder.remove(todoId);
   }
 
   Future<TodoItem> completeTodo(String todoId) async {
@@ -179,6 +191,70 @@ class LocalTodoSource {
     return completed;
   }
 
+  Future<void> reorderTodos(List<String> orderedTodoIds) async {
+    _usesManualOrder = true;
+    final visible = orderedTodoIds.toSet();
+    _manualOrder
+      ..removeWhere(visible.contains)
+      ..insertAll(0, orderedTodoIds);
+  }
+
+  Future<void> smartSortTodos() async {
+    _autoCompleteExpiredDurations();
+    final sorted = [..._items]..sort(compareTodosByPriority);
+    _usesManualOrder = true;
+    _manualOrder
+      ..clear()
+      ..addAll(sorted.map((todo) => todo.id));
+  }
+
+  int _compareTodos(TodoItem a, TodoItem b) {
+    if (!_usesManualOrder || _manualOrder.isEmpty) {
+      return compareTodos(a, b);
+    }
+    final aIndex = _manualOrder.indexOf(a.id);
+    final bIndex = _manualOrder.indexOf(b.id);
+    if (aIndex != -1 && bIndex != -1) {
+      return aIndex.compareTo(bIndex);
+    }
+    if (aIndex != -1) {
+      return -1;
+    }
+    if (bIndex != -1) {
+      return 1;
+    }
+    return compareTodos(a, b);
+  }
+
+  Future<void> _createNextRepeat(TodoItem completed, DateTime now) async {
+    final delta = switch (completed.repeatRule) {
+      RepeatRule.daily => const Duration(days: 1),
+      RepeatRule.weekly => const Duration(days: 7),
+      RepeatRule.biweekly => const Duration(days: 14),
+      RepeatRule.once => Duration.zero,
+    };
+    if (delta == Duration.zero) {
+      return;
+    }
+    final next = completed.copyWith(
+      id: 'todo-${now.microsecondsSinceEpoch}-${++_counter}',
+      startAt: PatchField.value(completed.startAt?.add(delta)),
+      endAt: PatchField.value(completed.endAt?.add(delta)),
+      deadlineAt: PatchField.value(completed.deadlineAt?.add(delta)),
+      status: TodoStatus.open,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _items.add(next);
+    final currentIndex = _manualOrder.indexOf(completed.id);
+    if (_usesManualOrder) {
+      _manualOrder.insert(
+        currentIndex == -1 ? _manualOrder.length : currentIndex + 1,
+        next.id,
+      );
+    }
+  }
+
   void _autoCompleteExpiredDurations() {
     final now = clock.now();
     for (var index = 0; index < _items.length; index += 1) {
@@ -213,6 +289,18 @@ int compareTodos(TodoItem a, TodoItem b) {
     return 1;
   }
   return a.createdAt.compareTo(b.createdAt);
+}
+
+int compareTodosByPriority(TodoItem a, TodoItem b) {
+  final statusCompare = a.status.index.compareTo(b.status.index);
+  if (statusCompare != 0) {
+    return statusCompare;
+  }
+  final priorityCompare = b.priority.compareTo(a.priority);
+  if (priorityCompare != 0) {
+    return priorityCompare;
+  }
+  return compareTodos(a, b);
 }
 
 PatchField<DateTime> _timeFieldForKind({

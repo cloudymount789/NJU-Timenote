@@ -4,26 +4,37 @@ import '../../app/app.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 
-Future<void> showCreateTodoSheet(BuildContext context, {String? initialText}) {
-  return showModalBottomSheet<void>(
+import 'app_feedback.dart';
+
+Future<bool?> showCreateTodoSheet(
+  BuildContext context, {
+  String? initialText,
+  bool navigateToTodosOnSubmit = true,
+}) {
+  return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.25),
-    builder: (_) =>
-        CreateTodoSheet(parentContext: context, initialText: initialText),
+    builder: (_) => CreateTodoSheet(
+      parentContext: context,
+      initialText: initialText,
+      navigateToTodosOnSubmit: navigateToTodosOnSubmit,
+    ),
   );
 }
 
 class CreateTodoSheet extends StatefulWidget {
   const CreateTodoSheet({
     required this.parentContext,
+    required this.navigateToTodosOnSubmit,
     this.initialText,
     super.key,
   });
 
   final BuildContext parentContext;
+  final bool navigateToTodosOnSubmit;
   final String? initialText;
 
   @override
@@ -52,13 +63,15 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
   Future<void> _openGoalSplit(String? title) async {
     final navigator = Navigator.of(widget.parentContext);
     Navigator.of(context).pop();
-    final result = await navigator.pushNamed<String>(
-      AppRoutes.goalSplit,
-      arguments: GoalSplitRouteArgs(initialTitle: title),
-    );
-    if (result != null && widget.parentContext.mounted) {
-      await showCreateTodoSheet(widget.parentContext, initialText: result);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final result = await navigator.pushNamed<String>(
+        AppRoutes.goalSplit,
+        arguments: GoalSplitRouteArgs(initialTitle: title),
+      );
+      if (result != null && widget.parentContext.mounted) {
+        await showCreateTodoSheet(widget.parentContext, initialText: result);
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -75,13 +88,13 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
       if (!mounted) {
         return;
       }
-      Navigator.of(context).pop();
-      await navigator.pushNamed(AppRoutes.todos);
+      Navigator.of(context).pop(true);
+      if (widget.navigateToTodosOnSubmit) {
+        await navigator.pushNamed(AppRoutes.todos);
+      }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('创建失败：$error')));
+        showAppSnackBar(context, '创建失败：$error');
       }
     } finally {
       if (mounted) {

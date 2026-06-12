@@ -19,6 +19,10 @@ class LocalCourseSource {
       });
   }
 
+  Future<Course?> getCourseById(String courseId) async {
+    return _courses.where((course) => course.id == courseId).firstOrNull;
+  }
+
   Future<Course?> getNextCourse() async {
     final courses = await getCoursesForWeek(1);
     final now = clock.now();
@@ -70,6 +74,31 @@ class LocalCourseSource {
     );
     _courses.add(course);
     return course;
+  }
+
+  Future<Course> updateCourse(String courseId, CourseDraft draft) async {
+    final index = _courses.indexWhere((course) => course.id == courseId);
+    if (index == -1) {
+      throw StateError('课程不存在');
+    }
+    final old = _courses[index];
+    final updated = old.copyWith(
+      name: draft.name.trim(),
+      teacher: draft.teacher.trim(),
+      location: draft.location.trim(),
+      note: draft.note.trim(),
+      dayOfWeek: draft.dayOfWeek,
+      startPeriod: draft.startPeriod,
+      endPeriod: draft.endPeriod,
+      weekRule: draft.weekRule,
+      startWeek: draft.startWeek,
+      endWeek: draft.endWeek,
+      colorKey: colorKeyForCourseName(draft.name),
+      source: draft.source,
+      updatedAt: clock.now(),
+    );
+    _courses[index] = updated;
+    return updated;
   }
 
   Future<void> deleteCourse(String courseId) async {

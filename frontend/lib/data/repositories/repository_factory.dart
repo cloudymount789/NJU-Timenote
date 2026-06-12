@@ -50,6 +50,11 @@ class LocalCourseRepository implements CourseRepository {
   }
 
   @override
+  Future<Course?> getCourseById(String courseId) {
+    return _source.getCourseById(courseId);
+  }
+
+  @override
   Future<Course?> getNextCourse() {
     return _source.getNextCourse();
   }
@@ -57,6 +62,11 @@ class LocalCourseRepository implements CourseRepository {
   @override
   Future<Course> createCourse(CourseDraft draft) {
     return _source.createCourse(draft);
+  }
+
+  @override
+  Future<Course> updateCourse(String courseId, CourseDraft draft) {
+    return _source.updateCourse(courseId, draft);
   }
 
   @override
@@ -123,6 +133,16 @@ class LocalTodoRepository implements TodoRepository {
   @override
   Future<TodoItem> toggleTodoCompletion(String todoId) {
     return _source.toggleTodoCompletion(todoId);
+  }
+
+  @override
+  Future<void> reorderTodos(List<String> orderedTodoIds) {
+    return _source.reorderTodos(orderedTodoIds);
+  }
+
+  @override
+  Future<void> smartSortTodos() {
+    return _source.smartSortTodos();
   }
 
   @override

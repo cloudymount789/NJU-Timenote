@@ -91,6 +91,45 @@ void main() {
     expect(course.updatedAt, fixedNow);
   });
 
+  test('local course source updates existing course', () async {
+    final source = LocalCourseSource();
+    final course = await source.createCourse(
+      const CourseDraft(
+        name: '课程',
+        teacher: '',
+        location: '教室',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+      ),
+    );
+
+    final updated = await source.updateCourse(
+      course.id,
+      const CourseDraft(
+        name: '新课程',
+        teacher: '老师',
+        location: '新教室',
+        note: '备注',
+        dayOfWeek: 5,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.even,
+        startWeek: 2,
+        endWeek: 20,
+      ),
+    );
+
+    expect(updated.name, '新课程');
+    expect((await source.getCourseById(course.id))?.location, '新教室');
+    expect(await source.getCoursesForWeek(1), isEmpty);
+    expect(await source.getCoursesForWeek(2), hasLength(1));
+  });
+
   testWidgets('timetable renders spanning and conflicting courses', (
     tester,
   ) async {
@@ -138,7 +177,12 @@ void main() {
           body: SizedBox(
             width: 390,
             height: 700,
-            child: TimetableView(courses: courses, onDeleteCourse: (_) {}),
+            child: TimetableView(
+              courses: courses,
+              currentDate: DateTime(2026, 6, 12),
+              onDeleteCourse: (_) {},
+              onOpenCourse: (_) {},
+            ),
           ),
         ),
       ),
@@ -159,8 +203,10 @@ void main() {
             height: 760,
             child: TimetableView(
               courses: const [],
+              currentDate: DateTime(2026, 6, 12),
               todayWeekday: 4,
               onDeleteCourse: (_) {},
+              onOpenCourse: (_) {},
             ),
           ),
         ),
