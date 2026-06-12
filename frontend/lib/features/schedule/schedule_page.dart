@@ -104,7 +104,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     courses: courses,
                     week: _currentWeek,
                     currentDate: now,
-                    todayWeekday: now.weekday,
+                    todayWeekday: _currentWeek == 1 ? now.weekday : null,
                     onDeleteCourse: _deleteCourse,
                     onOpenCourse: (course) async {
                       await Navigator.of(context).pushNamed(

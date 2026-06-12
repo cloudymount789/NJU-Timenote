@@ -38,12 +38,6 @@ class CourseDetailRouteArgs {
   final String? courseId;
 }
 
-class TodoListRouteArgs {
-  const TodoListRouteArgs({this.onlyDeadline = false});
-
-  final bool onlyDeadline;
-}
-
 class TodoDetailRouteArgs {
   const TodoDetailRouteArgs({this.isCreate = false, this.todoId});
 
@@ -85,10 +79,7 @@ class AppRouter {
       case AppRoutes.scheduleAddScreenshot:
         page = const ScreenshotCoursePage();
       case AppRoutes.todos:
-        final args = settings.arguments;
-        page = TodoListPage(
-          onlyDeadline: args is TodoListRouteArgs && args.onlyDeadline,
-        );
+        page = const TodoListPage();
       case AppRoutes.todoDetail:
         final args = settings.arguments;
         page = TodoDetailPage(

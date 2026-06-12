@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nju_timenote/app/app.dart';
 import 'package:nju_timenote/app/router.dart';
-import 'package:nju_timenote/app/theme/app_colors.dart';
 import 'package:nju_timenote/core/time/app_clock.dart';
 import 'package:nju_timenote/data/models/todo.dart';
 import 'package:nju_timenote/data/repositories/app_repositories.dart';
@@ -39,19 +38,15 @@ void main() {
     expect(find.text('手动创建待办'), findsOneWidget);
   });
 
-  testWidgets('router exposes deadline todo semantic route', (tester) async {
+  testWidgets('deadline card opens the default todo list', (tester) async {
     await tester.pumpWidget(const TimenoteApp());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('DDL 提醒'));
     await tester.pumpAndSettle();
 
-    expect(find.text('DDL 提醒'), findsOneWidget);
+    expect(find.text('待办'), findsOneWidget);
     expect(find.text('暂无待办'), findsOneWidget);
-    final filterIcon = tester.widget<Icon>(
-      find.byIcon(Icons.filter_alt_outlined),
-    );
-    expect(filterIcon.color, AppColors.ink);
   });
 
   testWidgets('creating a todo from list detail refreshes visible list', (
@@ -59,10 +54,7 @@ void main() {
   ) async {
     final repositories = RepositoryFactory.local();
     await tester.pumpWidget(
-      _ScopedTestApp(
-        repositories: repositories,
-        home: const TodoListPage(onlyDeadline: false),
-      ),
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
     );
     await tester.pumpAndSettle();
 

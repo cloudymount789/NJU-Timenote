@@ -15,19 +15,18 @@ import '../../core/widgets/state_views.dart';
 import '../../data/models/todo.dart';
 
 class TodoListPage extends StatefulWidget {
-  const TodoListPage({required this.onlyDeadline, super.key});
-
-  final bool onlyDeadline;
+  const TodoListPage({super.key});
 
   @override
   State<TodoListPage> createState() => _TodoListPageState();
 }
 
 class _TodoListPageState extends State<TodoListPage> {
-  late TodoFilter _filter = TodoFilter(onlyDeadline: widget.onlyDeadline);
+  TodoFilter _filter = const TodoFilter();
   Future<List<TodoItem>>? _future;
   var _didLoad = false;
   var _batchMode = false;
+  var _isSmartSortEnabled = false;
   final _selectedIds = <String>{};
 
   @override
@@ -132,7 +131,21 @@ class _TodoListPageState extends State<TodoListPage> {
         _filter.tags.isNotEmpty;
   }
 
-  Future<void> _smartSort() async {
+  Future<void> _toggleSmartSort() async {
+    final repo = AppScope.repositoriesOf(context).todos;
+    if (_isSmartSortEnabled) {
+      final todos = await (_future ?? Future.value(const <TodoItem>[]));
+      await repo.reorderTodos(todos.map((todo) => todo.id).toList());
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSmartSortEnabled = false;
+      });
+      await _refresh();
+      return;
+    }
+
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: '启用智能排序？',
@@ -142,8 +155,11 @@ class _TodoListPageState extends State<TodoListPage> {
     if (confirmed != true || !mounted) {
       return;
     }
-    await AppScope.repositoriesOf(context).todos.smartSortTodos();
+    await repo.smartSortTodos();
     if (mounted) {
+      setState(() {
+        _isSmartSortEnabled = true;
+      });
       await _refresh();
     }
   }
@@ -155,6 +171,7 @@ class _TodoListPageState extends State<TodoListPage> {
     final moved = ordered.removeAt(oldIndex);
     ordered.insert(newIndex, moved);
     setState(() {
+      _isSmartSortEnabled = false;
       _future = Future.value(ordered);
     });
     await repo.reorderTodos(ordered.map((todo) => todo.id).toList());
@@ -225,7 +242,7 @@ class _TodoListPageState extends State<TodoListPage> {
         child: Column(
           children: [
             AppHeader(
-              title: widget.onlyDeadline ? 'DDL 提醒' : '待办',
+              title: '待办',
               subtitle: _batchMode ? '批量操作' : null,
               onBack: _goHome,
               trailing: Row(
@@ -280,7 +297,8 @@ class _TodoListPageState extends State<TodoListPage> {
                     onTap: _openDetail,
                     onComplete: _complete,
                     onReorder: _reorderVisible,
-                    onSmartSort: _smartSort,
+                    onSmartSort: _toggleSmartSort,
+                    isSmartSortEnabled: _isSmartSortEnabled,
                     onRefresh: _refresh,
                   ),
                   if (_batchMode)
@@ -331,6 +349,7 @@ class _TodoListCard extends StatelessWidget {
     required this.onComplete,
     required this.onReorder,
     required this.onSmartSort,
+    required this.isSmartSortEnabled,
     required this.onRefresh,
   });
 
@@ -341,6 +360,7 @@ class _TodoListCard extends StatelessWidget {
   final ValueChanged<TodoItem> onComplete;
   final void Function(int oldIndex, int newIndex) onReorder;
   final VoidCallback onSmartSort;
+  final bool isSmartSortEnabled;
   final Future<void> Function() onRefresh;
 
   @override
@@ -368,7 +388,11 @@ class _TodoListCard extends StatelessWidget {
           if (snapshot.connectionState != ConnectionState.done) {
             return Column(
               children: [
-                if (!batchMode) _SmartSortHeader(onPressed: onSmartSort),
+                if (!batchMode)
+                  _SmartSortHeader(
+                    enabled: isSmartSortEnabled,
+                    onPressed: onSmartSort,
+                  ),
                 const Expanded(child: LoadingState()),
               ],
             );
@@ -376,7 +400,11 @@ class _TodoListCard extends StatelessWidget {
           if (snapshot.hasError) {
             return Column(
               children: [
-                if (!batchMode) _SmartSortHeader(onPressed: onSmartSort),
+                if (!batchMode)
+                  _SmartSortHeader(
+                    enabled: isSmartSortEnabled,
+                    onPressed: onSmartSort,
+                  ),
                 Expanded(child: ErrorState(message: '${snapshot.error}')),
               ],
             );
@@ -385,7 +413,11 @@ class _TodoListCard extends StatelessWidget {
           if (todos.isEmpty) {
             return Column(
               children: [
-                if (!batchMode) _SmartSortHeader(onPressed: onSmartSort),
+                if (!batchMode)
+                  _SmartSortHeader(
+                    enabled: isSmartSortEnabled,
+                    onPressed: onSmartSort,
+                  ),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: onRefresh,
@@ -449,7 +481,10 @@ class _TodoListCard extends StatelessWidget {
           }
           return Column(
             children: [
-              _SmartSortHeader(onPressed: onSmartSort),
+              _SmartSortHeader(
+                enabled: isSmartSortEnabled,
+                onPressed: onSmartSort,
+              ),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: onRefresh,
@@ -486,8 +521,9 @@ class _TodoListCard extends StatelessWidget {
 }
 
 class _SmartSortHeader extends StatelessWidget {
-  const _SmartSortHeader({required this.onPressed});
+  const _SmartSortHeader({required this.enabled, required this.onPressed});
 
+  final bool enabled;
   final VoidCallback onPressed;
 
   @override
@@ -499,18 +535,18 @@ class _SmartSortHeader extends StatelessWidget {
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(10),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  Icons.check_circle_outline,
-                  color: AppColors.primary,
+                  enabled ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: enabled ? AppColors.primary : AppColors.subtle,
                   size: 22,
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   '智能排序',
                   style: TextStyle(
                     color: AppColors.primary,

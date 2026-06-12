@@ -124,9 +124,7 @@ class HomePage extends StatelessWidget {
                       ),
                       SizedBox(height: cardGap),
                       FutureBuilder<List<TodoItem>>(
-                        future: repositories.todos.getTodos(
-                          const TodoFilter(onlyDeadline: true),
-                        ),
+                        future: repositories.todos.getTodos(),
                         builder: (context, snapshot) {
                           return AppCard(
                             padding: EdgeInsets.all(compact ? 16 : 20),
@@ -134,12 +132,9 @@ class HomePage extends StatelessWidget {
                               horizontal: 8,
                               vertical: 7,
                             ),
-                            onTap: () => Navigator.of(context).pushNamed(
-                              AppRoutes.todos,
-                              arguments: const TodoListRouteArgs(
-                                onlyDeadline: true,
-                              ),
-                            ),
+                            onTap: () => Navigator.of(
+                              context,
+                            ).pushNamed(AppRoutes.todos),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

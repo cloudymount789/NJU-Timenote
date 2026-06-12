@@ -198,19 +198,14 @@ class TodoFilter {
     this.kinds = const [TodoKind.duration, TodoKind.deadline, TodoKind.normal],
     this.statuses = const [TodoStatus.open, TodoStatus.done],
     this.tags = const [],
-    this.onlyDeadline = false,
   });
 
   final DateTime? date;
   final List<TodoKind> kinds;
   final List<TodoStatus> statuses;
   final List<String> tags;
-  final bool onlyDeadline;
 
   bool matches(TodoItem item) {
-    if (onlyDeadline && item.kind != TodoKind.deadline) {
-      return false;
-    }
     if (!kinds.contains(item.kind)) {
       return false;
     }
@@ -234,14 +229,12 @@ class TodoFilter {
     List<TodoKind>? kinds,
     List<TodoStatus>? statuses,
     List<String>? tags,
-    bool? onlyDeadline,
   }) {
     return TodoFilter(
       date: date.isSet ? date.value : this.date,
       kinds: kinds ?? this.kinds,
       statuses: statuses ?? this.statuses,
       tags: tags ?? this.tags,
-      onlyDeadline: onlyDeadline ?? this.onlyDeadline,
     );
   }
 }
