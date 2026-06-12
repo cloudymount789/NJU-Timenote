@@ -484,11 +484,16 @@ class _TodoFilterSidebar extends StatefulWidget {
 
 class _TodoFilterSidebarState extends State<_TodoFilterSidebar> {
   late TodoFilter _filter = widget.initial;
-  late Future<List<String>> _tagsFuture;
+  Future<List<String>>? _tagsFuture;
+  var _didLoadTags = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didLoadTags) {
+      return;
+    }
+    _didLoadTags = true;
     _tagsFuture = AppScope.repositoriesOf(context).tags.getTags();
   }
 
@@ -562,7 +567,7 @@ class _TodoFilterSidebarState extends State<_TodoFilterSidebar> {
             title: 'Tag',
             children: [
               FutureBuilder<List<String>>(
-                future: _tagsFuture,
+                future: _tagsFuture ?? Future.value(const <String>[]),
                 builder: (context, snapshot) {
                   final tags = snapshot.data ?? const [];
                   return Wrap(

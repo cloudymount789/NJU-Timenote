@@ -64,7 +64,9 @@ class AppBottomInputBar extends StatelessWidget {
               tooltip: '搜索待办',
               onTap: onSearchTap,
               foreground: Colors.white,
-              color: AppColors.primary,
+              color: const Color(0xFF0052D9),
+              size: 44,
+              iconSize: 22,
             ),
           ],
         ),
@@ -81,6 +83,8 @@ class _CircleButton extends StatelessWidget {
     required this.foreground,
     this.color,
     this.gradient,
+    this.size = 40,
+    this.iconSize = 20,
   });
 
   final IconData icon;
@@ -89,6 +93,8 @@ class _CircleButton extends StatelessWidget {
   final Color foreground;
   final Color? color;
   final Gradient? gradient;
+  final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -98,21 +104,22 @@ class _CircleButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Ink(
-          width: 40,
-          height: 40,
+          width: size,
+          height: size,
           decoration: BoxDecoration(
             color: color,
             gradient: gradient,
             shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x180062FF),
-                blurRadius: 8,
-                offset: Offset(0, 2),
+                color: Color(0x330052D9),
+                blurRadius: 12,
+                offset: Offset(0, 4),
               ),
             ],
           ),
-          child: Icon(icon, size: 20, color: foreground),
+          child: Icon(icon, size: iconSize, color: foreground),
         ),
       ),
     );
