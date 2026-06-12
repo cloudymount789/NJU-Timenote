@@ -102,24 +102,28 @@ class _CircleButton extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Ink(
+        borderRadius: BorderRadius.circular(size / 2),
+        child: SizedBox(
           width: size,
           height: size,
-          decoration: BoxDecoration(
-            color: color,
-            gradient: gradient,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x330052D9),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: color,
+              gradient: gradient,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x330052D9),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: Icon(icon, size: iconSize, color: foreground),
+            ),
           ),
-          child: Icon(icon, size: iconSize, color: foreground),
         ),
       ),
     );
