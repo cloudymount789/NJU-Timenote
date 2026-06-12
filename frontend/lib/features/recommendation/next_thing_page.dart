@@ -4,6 +4,7 @@ import '../../app/app.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
+import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../core/widgets/state_views.dart';
@@ -145,11 +146,25 @@ class _NextThingRecommendPageState extends State<NextThingRecommendPage> {
     final repo = AppScope.repositoriesOf(context).todos;
     if (_addedSuggestionTodoId != null) {
       await repo.deleteTodo(_addedSuggestionTodoId!);
-      setState(() => _addedSuggestionTodoId = null);
+      if (!mounted) {
+        return;
+      }
+      showAppSnackBar(context, '已取消添加');
+      setState(() {
+        _addedSuggestionTodoId = null;
+        _future = _load();
+      });
       return;
     }
     final todo = await repo.createTodo(TodoDraft(title: recommendation.title));
-    setState(() => _addedSuggestionTodoId = todo.id);
+    if (!mounted) {
+      return;
+    }
+    showAppSnackBar(context, '已添加到待办');
+    setState(() {
+      _addedSuggestionTodoId = todo.id;
+      _future = _load();
+    });
   }
 
   @override
@@ -199,15 +214,16 @@ class _NextThingRecommendPageState extends State<NextThingRecommendPage> {
                       ...suggestionItems.map(
                         (item) => _RecommendationCard(
                           item,
-                          trailing: IconButton(
-                            tooltip: _addedSuggestionTodoId == null
-                                ? '添加'
-                                : '取消添加',
+                          trailing: TextButton.icon(
                             onPressed: () => _addOrRemoveSuggestion(item),
                             icon: Icon(
                               _addedSuggestionTodoId == null
                                   ? Icons.add
                                   : Icons.close,
+                              size: 18,
+                            ),
+                            label: Text(
+                              _addedSuggestionTodoId == null ? '添加到待办' : '取消添加',
                             ),
                           ),
                         ),

@@ -130,6 +130,42 @@ void main() {
     expect(await source.getCoursesForWeek(2), hasLength(1));
   });
 
+  test('local course source picks upcoming course by current time', () async {
+    final source = LocalCourseSource(
+      clock: FixedAppClock(DateTime(2026, 6, 12, 9)),
+    );
+    await source.createCourse(
+      const CourseDraft(
+        name: '晚课',
+        teacher: '',
+        location: 'B',
+        note: '',
+        dayOfWeek: 5,
+        startPeriod: 9,
+        endPeriod: 10,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+      ),
+    );
+    await source.createCourse(
+      const CourseDraft(
+        name: '上午课',
+        teacher: '',
+        location: 'A',
+        note: '',
+        dayOfWeek: 5,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+      ),
+    );
+
+    expect((await source.getNextCourse())?.name, '上午课');
+  });
+
   testWidgets('timetable renders spanning and conflicting courses', (
     tester,
   ) async {

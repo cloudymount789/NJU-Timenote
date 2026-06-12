@@ -13,6 +13,7 @@ import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../core/widgets/right_sidebar_shell.dart';
 import '../../core/widgets/state_views.dart';
 import '../../data/models/todo.dart';
+import '../../data/repositories/app_repositories.dart';
 
 class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
@@ -28,6 +29,7 @@ class _TodoListPageState extends State<TodoListPage> {
   var _batchMode = false;
   var _isSmartSortEnabled = false;
   final _selectedIds = <String>{};
+  AppRepositories? _repositories;
 
   @override
   void didChangeDependencies() {
@@ -35,8 +37,25 @@ class _TodoListPageState extends State<TodoListPage> {
     if (_didLoad) {
       return;
     }
+    final repositories = AppScope.repositoriesOf(context);
+    _repositories = repositories;
+    repositories.changes.addListener(_handleDataChanged);
     _didLoad = true;
     _future = _load();
+  }
+
+  @override
+  void dispose() {
+    _repositories?.changes.removeListener(_handleDataChanged);
+    super.dispose();
+  }
+
+  void _handleDataChanged() {
+    if (mounted) {
+      setState(() {
+        _future = _load();
+      });
+    }
   }
 
   Future<List<TodoItem>> _load() {
@@ -329,8 +348,12 @@ class _TodoListPageState extends State<TodoListPage> {
                 },
                 onSearchTap: () =>
                     Navigator.of(context).pushNamed(AppRoutes.todoSearch),
-                onQuickPickTap: () =>
-                    Navigator.of(context).pushNamed(AppRoutes.nextThing),
+                onQuickPickTap: () async {
+                  await Navigator.of(context).pushNamed(AppRoutes.nextThing);
+                  if (mounted) {
+                    await _refresh();
+                  }
+                },
               ),
             ],
           ],

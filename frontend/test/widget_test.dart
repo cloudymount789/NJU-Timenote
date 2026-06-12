@@ -3,9 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nju_timenote/app/app.dart';
 import 'package:nju_timenote/app/router.dart';
 import 'package:nju_timenote/core/time/app_clock.dart';
+import 'package:nju_timenote/data/models/course.dart';
+import 'package:nju_timenote/data/models/recommendation.dart';
 import 'package:nju_timenote/data/models/todo.dart';
 import 'package:nju_timenote/data/repositories/app_repositories.dart';
 import 'package:nju_timenote/data/repositories/repository_factory.dart';
+import 'package:nju_timenote/features/home/home_page.dart';
+import 'package:nju_timenote/features/recommendation/next_thing_page.dart';
 import 'package:nju_timenote/features/todo/todo_detail_page.dart';
 import 'package:nju_timenote/features/todo/todo_list_page.dart';
 
@@ -106,19 +110,95 @@ void main() {
 
     expect(find.text('选择 Tag'), findsOneWidget);
   });
+
+  testWidgets('home renders real next course todo and deadline data', (
+    tester,
+  ) async {
+    final fixedNow = DateTime(2026, 6, 12, 9);
+    final repositories = RepositoryFactory.local(FixedAppClock(fixedNow));
+    await repositories.courses.createCourse(
+      const CourseDraft(
+        name: '数据结构',
+        teacher: '王老师',
+        location: '仙 I-101',
+        note: '',
+        dayOfWeek: 5,
+        startPeriod: 5,
+        endPeriod: 6,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+      ),
+    );
+    await repositories.todos.createTodo(
+      TodoDraft(
+        title: '预习课程',
+        kind: TodoKind.duration,
+        startAt: DateTime(2026, 6, 12, 10),
+        endAt: DateTime(2026, 6, 12, 11),
+      ),
+    );
+    await repositories.todos.createTodo(
+      TodoDraft(
+        title: '提交实验报告',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 13, 23, 59),
+      ),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        clock: FixedAppClock(fixedNow),
+        home: const HomePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('数据结构'), findsOneWidget);
+    expect(find.text('预习课程'), findsOneWidget);
+    expect(find.text('提交实验报告'), findsOneWidget);
+  });
+
+  testWidgets('next thing add button creates todo and shows refreshed state', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        home: const NextThingRecommendPage(
+          input: RecommendationInput(mood: 50, willingness: 20, anxiety: 30),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('添加到待办'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.getTodos(), hasLength(1));
+    expect(find.text('已添加到待办'), findsOneWidget);
+    expect(find.text('取消添加'), findsOneWidget);
+  });
 }
 
 class _ScopedTestApp extends StatelessWidget {
-  const _ScopedTestApp({required this.repositories, required this.home});
+  const _ScopedTestApp({
+    required this.repositories,
+    required this.home,
+    this.clock = const AppClock(),
+  });
 
   final AppRepositories repositories;
   final Widget home;
+  final AppClock clock;
 
   @override
   Widget build(BuildContext context) {
     return AppScope(
       repositories: repositories,
-      clock: const AppClock(),
+      clock: clock,
       child: MaterialApp(
         home: home,
         onGenerateRoute: AppRouter.onGenerateRoute,

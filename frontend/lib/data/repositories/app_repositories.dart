@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'course_repository.dart';
 import 'goal_split_repository.dart';
 import 'quick_todo_repository.dart';
@@ -7,7 +9,7 @@ import 'tag_repository.dart';
 import 'todo_repository.dart';
 
 class AppRepositories {
-  const AppRepositories({
+  AppRepositories({
     required this.courses,
     required this.todos,
     required this.tags,
@@ -15,7 +17,8 @@ class AppRepositories {
     required this.recommendations,
     required this.goalSplits,
     required this.quickTodos,
-  });
+    DataRefreshNotifier? changes,
+  }) : changes = changes ?? DataRefreshNotifier();
 
   final CourseRepository courses;
   final TodoRepository todos;
@@ -24,4 +27,16 @@ class AppRepositories {
   final RecommendationRepository recommendations;
   final GoalSplitRepository goalSplits;
   final QuickTodoRepository quickTodos;
+  final DataRefreshNotifier changes;
+}
+
+class DataRefreshNotifier extends ChangeNotifier {
+  int _version = 0;
+
+  int get version => _version;
+
+  void markChanged() {
+    _version += 1;
+    notifyListeners();
+  }
 }

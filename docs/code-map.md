@@ -32,14 +32,14 @@
 ## 数据边界
 
 - `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft` 和周次匹配规则；`todo.dart` 已包含 `TodoItem`、`TodoDraft`、`TodoPatch`、`TodoFilter`、PATCH 字段语义和筛选匹配。
-- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、单条查询、创建、更新、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、取消完成、完成状态切换、手动排序、智能排序、批量删除、批量完成和基础搜索；`RepositoryFactory.local(clock)` 负责把统一时间来源注入本地 source；`QuickTodoRepository` 封装一句话创建边界。
-- `frontend/lib/data/sources/local/`：本地 source；`LocalCourseSource` 维护内存课程列表、课程名稳定颜色、下一节课计算和 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 维护内存待办列表、契约排序、默认/手动/智能排序状态、筛选、重复规则投影、重复周期完成记录、7 天已完成记录清理、duration 自动完成和批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办。
+- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、单条查询、下一节课计算、创建、更新、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、取消完成、完成状态切换、手动排序、智能排序、批量删除、批量完成和基础搜索；`AppRepositories.changes` 是 repository 级刷新信号，课程/待办/快速创建/大目标拆分写入成功后触发，首页、待办页等页面应监听后重新查询 repository；`RepositoryFactory.local(clock)` 负责把统一时间来源注入本地 source；`QuickTodoRepository` 封装一句话创建边界。
+- `frontend/lib/data/sources/local/`：本地 source；`LocalCourseSource` 维护内存课程列表、课程名稳定颜色、按当前时间计算下一节课和 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 维护内存待办列表、契约排序、默认/手动/智能排序状态、筛选、重复规则投影、重复周期完成记录、7 天已完成记录清理、duration 自动完成和批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办，并为每条小目标只添加一个“大目标 tag”（由大目标名称生成，超过 12 个字符截断为前 12 个字符 + `...`），不再默认添加 `学习`。
 - `frontend/lib/data/sources/mock/`：mock 边界占位；默认不启用 mock 数据。
 - `frontend/lib/data/sources/remote/`：未来后端边界占位；UI 不得直接调用。
 
 ## 功能页面
 
-- `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航；首页为非滚动布局，底部一句话输入栏通过 `Stack` 固定在屏幕底部上层。
+- `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航；首页通过 repository 读取真实的下一节课、下一件事和 DDL 提醒，监听 `AppRepositories.changes` 并支持下拉刷新；底部一句话输入栏通过 `Stack` 固定在屏幕底部上层。
 - `frontend/lib/features/settings/settings_page.dart`：最小设置入口，包含课表与作息、数据与分享分区。
 - `frontend/lib/features/schedule/schedule_page.dart`：课表网格、周切换、周几日期、跨节/跨上午下午切割、冲突排列、点击编辑、长按删除。
 - `frontend/lib/features/schedule/add_schedule_page.dart`：添加课表入口页。

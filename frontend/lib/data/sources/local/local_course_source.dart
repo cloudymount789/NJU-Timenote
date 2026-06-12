@@ -24,33 +24,17 @@ class LocalCourseSource {
   }
 
   Future<Course?> getNextCourse() async {
-    final courses = await getCoursesForWeek(1);
     final now = clock.now();
-    final today = now.weekday;
-    final upcoming = courses.where((course) {
-      if (course.dayOfWeek > today) {
-        return true;
-      }
-      if (course.dayOfWeek < today) {
-        return false;
-      }
-      final start = defaultPeriodTimes
-          .where((period) => period.period == course.startPeriod)
-          .firstOrNull;
-      if (start == null) {
-        return true;
-      }
-      final parts = start.start.split(':').map(int.parse).toList();
-      final startTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        parts[0],
-        parts[1],
-      );
-      return !startTime.isBefore(now);
-    }).toList();
-    return upcoming.isEmpty ? null : upcoming.first;
+    final upcoming =
+        _courses
+            .where((course) => course.occursInWeek(1))
+            .map(
+              (course) =>
+                  (course: course, startsAt: _nextStartFor(course, now)),
+            )
+            .toList()
+          ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+    return upcoming.firstOrNull?.course;
   }
 
   Future<Course> createCourse(CourseDraft draft) async {
@@ -119,6 +103,28 @@ class LocalCourseSource {
       return colorKeys[hash % colorKeys.length];
     });
   }
+}
+
+DateTime _nextStartFor(Course course, DateTime now) {
+  final period = defaultPeriodTimes
+      .where((period) => period.period == course.startPeriod)
+      .firstOrNull;
+  final parts = (period?.start ?? '00:00').split(':').map(int.parse).toList();
+  var daysAhead = course.dayOfWeek - now.weekday;
+  if (daysAhead < 0) {
+    daysAhead += 7;
+  }
+  var date = DateTime(
+    now.year,
+    now.month,
+    now.day,
+  ).add(Duration(days: daysAhead));
+  var startsAt = DateTime(date.year, date.month, date.day, parts[0], parts[1]);
+  if (startsAt.isBefore(now)) {
+    date = date.add(const Duration(days: 7));
+    startsAt = DateTime(date.year, date.month, date.day, parts[0], parts[1]);
+  }
+  return startsAt;
 }
 
 const defaultPeriodTimes = <PeriodTimeConfig>[

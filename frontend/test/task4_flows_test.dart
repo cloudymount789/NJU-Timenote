@@ -98,9 +98,24 @@ void main() {
       expect(created, hasLength(2));
       expect(created.every((todo) => todo.kind == TodoKind.deadline), isTrue);
       expect(created.every((todo) => todo.priority == 4), isTrue);
-      expect(created.every((todo) => todo.tags.contains('学习')), isTrue);
+      expect(created.every((todo) => todo.tags.contains('完成项目')), isTrue);
+      expect(created.every((todo) => todo.tags.contains('学习')), isFalse);
       expect(created.first.deadlineAt?.hour, 23);
       expect(created.first.deadlineAt?.minute, 59);
+    },
+  );
+
+  test(
+    'repository change notifier fires when recommendation creates a todo',
+    () async {
+      final repos = RepositoryFactory.local();
+      var changeCount = 0;
+      repos.changes.addListener(() => changeCount += 1);
+
+      await repos.todos.createTodo(const TodoDraft(title: '来自推荐'));
+
+      expect(changeCount, 1);
+      expect(await repos.todos.getTodos(), hasLength(1));
     },
   );
 }

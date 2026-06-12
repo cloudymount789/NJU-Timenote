@@ -25,24 +25,30 @@ class RepositoryFactory {
   static AppRepositories local([AppClock clock = const AppClock()]) {
     final tagSource = LocalTagSource();
     final todoSource = LocalTodoSource(tagSource, clock: clock);
+    final changes = DataRefreshNotifier();
     return AppRepositories(
-      courses: LocalCourseRepository(LocalCourseSource(clock: clock)),
-      todos: LocalTodoRepository(todoSource),
+      courses: LocalCourseRepository(LocalCourseSource(clock: clock), changes),
+      todos: LocalTodoRepository(todoSource, changes),
       tags: LocalTagRepository(tagSource),
       settings: LocalSettingsRepository(LocalSettingsSource()),
       recommendations: LocalRecommendationRepository(
         LocalRecommendationSource(todoSource),
       ),
-      goalSplits: LocalGoalSplitRepository(LocalGoalSplitSource(todoSource)),
-      quickTodos: LocalQuickTodoRepository(todoSource),
+      goalSplits: LocalGoalSplitRepository(
+        LocalGoalSplitSource(todoSource),
+        changes,
+      ),
+      quickTodos: LocalQuickTodoRepository(todoSource, changes),
+      changes: changes,
     );
   }
 }
 
 class LocalCourseRepository implements CourseRepository {
-  const LocalCourseRepository(this._source);
+  const LocalCourseRepository(this._source, this._changes);
 
   final LocalCourseSource _source;
+  final DataRefreshNotifier _changes;
 
   @override
   Future<List<Course>> getCoursesForWeek(int week) {
@@ -60,18 +66,23 @@ class LocalCourseRepository implements CourseRepository {
   }
 
   @override
-  Future<Course> createCourse(CourseDraft draft) {
-    return _source.createCourse(draft);
+  Future<Course> createCourse(CourseDraft draft) async {
+    final course = await _source.createCourse(draft);
+    _changes.markChanged();
+    return course;
   }
 
   @override
-  Future<Course> updateCourse(String courseId, CourseDraft draft) {
-    return _source.updateCourse(courseId, draft);
+  Future<Course> updateCourse(String courseId, CourseDraft draft) async {
+    final course = await _source.updateCourse(courseId, draft);
+    _changes.markChanged();
+    return course;
   }
 
   @override
-  Future<void> deleteCourse(String courseId) {
-    return _source.deleteCourse(courseId);
+  Future<void> deleteCourse(String courseId) async {
+    await _source.deleteCourse(courseId);
+    _changes.markChanged();
   }
 
   @override
@@ -81,9 +92,10 @@ class LocalCourseRepository implements CourseRepository {
 }
 
 class LocalTodoRepository implements TodoRepository {
-  const LocalTodoRepository(this._source);
+  const LocalTodoRepository(this._source, this._changes);
 
   final LocalTodoSource _source;
+  final DataRefreshNotifier _changes;
 
   @override
   Future<List<TodoItem>> getTodos([TodoFilter filter = const TodoFilter()]) {
@@ -106,53 +118,71 @@ class LocalTodoRepository implements TodoRepository {
   }
 
   @override
-  Future<TodoItem> createTodo(TodoDraft draft) {
-    return _source.createTodo(draft);
+  Future<TodoItem> createTodo(TodoDraft draft) async {
+    final todo = await _source.createTodo(draft);
+    _changes.markChanged();
+    return todo;
   }
 
   @override
-  Future<TodoItem> updateTodo(String todoId, TodoPatch patch) {
-    return _source.updateTodo(todoId, patch);
+  Future<TodoItem> updateTodo(String todoId, TodoPatch patch) async {
+    final todo = await _source.updateTodo(todoId, patch);
+    _changes.markChanged();
+    return todo;
   }
 
   @override
-  Future<void> deleteTodo(String todoId) {
-    return _source.deleteTodo(todoId);
+  Future<void> deleteTodo(String todoId) async {
+    await _source.deleteTodo(todoId);
+    _changes.markChanged();
   }
 
   @override
-  Future<TodoItem> completeTodo(String todoId) {
-    return _source.completeTodo(todoId);
+  Future<TodoItem> completeTodo(String todoId) async {
+    final todo = await _source.completeTodo(todoId);
+    _changes.markChanged();
+    return todo;
   }
 
   @override
-  Future<TodoItem> reopenTodo(String todoId) {
-    return _source.reopenTodo(todoId);
+  Future<TodoItem> reopenTodo(String todoId) async {
+    final todo = await _source.reopenTodo(todoId);
+    _changes.markChanged();
+    return todo;
   }
 
   @override
-  Future<TodoItem> toggleTodoCompletion(String todoId) {
-    return _source.toggleTodoCompletion(todoId);
+  Future<TodoItem> toggleTodoCompletion(String todoId) async {
+    final todo = await _source.toggleTodoCompletion(todoId);
+    _changes.markChanged();
+    return todo;
   }
 
   @override
-  Future<void> reorderTodos(List<String> orderedTodoIds) {
-    return _source.reorderTodos(orderedTodoIds);
+  Future<void> reorderTodos(List<String> orderedTodoIds) async {
+    await _source.reorderTodos(orderedTodoIds);
+    _changes.markChanged();
   }
 
   @override
-  Future<void> smartSortTodos() {
-    return _source.smartSortTodos();
+  Future<void> smartSortTodos() async {
+    await _source.smartSortTodos();
+    _changes.markChanged();
   }
 
   @override
-  Future<void> batchDelete(List<String> todoIds) {
-    return _source.batchDelete(todoIds);
+  Future<void> batchDelete(List<String> todoIds) async {
+    await _source.batchDelete(todoIds);
+    _changes.markChanged();
   }
 
   @override
-  Future<List<TodoItem>> batchComplete(List<String> todoIds) {
-    return _source.batchComplete(todoIds);
+  Future<List<TodoItem>> batchComplete(List<String> todoIds) async {
+    final todos = await _source.batchComplete(todoIds);
+    if (todos.isNotEmpty) {
+      _changes.markChanged();
+    }
+    return todos;
   }
 }
 
@@ -173,17 +203,20 @@ class LocalTagRepository implements TagRepository {
 }
 
 class LocalQuickTodoRepository implements QuickTodoRepository {
-  const LocalQuickTodoRepository(this._source);
+  const LocalQuickTodoRepository(this._source, this._changes);
 
   final LocalTodoSource _source;
+  final DataRefreshNotifier _changes;
 
   @override
-  Future<TodoItem> createFromSentence(String sentence) {
+  Future<TodoItem> createFromSentence(String sentence) async {
     final title = sentence.trim();
     if (title.isEmpty) {
       throw ArgumentError.value(sentence, 'sentence', '内容不能为空');
     }
-    return _source.createTodo(TodoDraft(title: title));
+    final todo = await _source.createTodo(TodoDraft(title: title));
+    _changes.markChanged();
+    return todo;
   }
 }
 
@@ -212,12 +245,14 @@ class LocalRecommendationRepository implements RecommendationRepository {
 }
 
 class LocalGoalSplitRepository implements GoalSplitRepository {
-  const LocalGoalSplitRepository(this._source);
+  const LocalGoalSplitRepository(this._source, this._changes);
 
   final LocalGoalSplitSource _source;
+  final DataRefreshNotifier _changes;
 
   @override
-  Future<void> createFromGoalSplit(GoalSplitDraft draft) {
-    return _source.createFromGoalSplit(draft);
+  Future<void> createFromGoalSplit(GoalSplitDraft draft) async {
+    await _source.createFromGoalSplit(draft);
+    _changes.markChanged();
   }
 }
