@@ -42,7 +42,9 @@ class _GoalSplitPageState extends State<GoalSplitPage> {
   bool get _canNextSetup {
     return _title.text.trim().isNotEmpty &&
         _finalDeadline != null &&
-        !_dateOnly(_finalDeadline!).isBefore(_dateOnly(DateTime.now()));
+        !_dateOnly(
+          _finalDeadline!,
+        ).isBefore(_dateOnly(AppScope.clockOf(context).now()));
   }
 
   bool get _canReview => _subtasks.isNotEmpty;
@@ -62,10 +64,11 @@ class _GoalSplitPageState extends State<GoalSplitPage> {
   }
 
   Future<DateTime?> _pickDate(DateTime? initial) {
+    final today = AppScope.clockOf(context).now();
     return showDatePicker(
       context: context,
-      initialDate: initial ?? DateTime.now(),
-      firstDate: DateTime.now(),
+      initialDate: initial ?? today,
+      firstDate: today,
       lastDate: DateTime(2035),
     );
   }

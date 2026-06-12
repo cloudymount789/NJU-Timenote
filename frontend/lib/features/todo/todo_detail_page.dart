@@ -180,7 +180,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
     required ValueChanged<DateTime> onPicked,
     DateTime? initial,
   }) async {
-    final seed = initial ?? DateTime.now();
+    final seed = initial ?? AppScope.clockOf(context).now();
     final date = await showDatePicker(
       context: context,
       initialDate: seed,
@@ -373,6 +373,13 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
                                 value: _repeatLabel(_repeatRule),
                                 onTap: _openRepeatDialog,
                               ),
+                              if (!widget.isCreate)
+                                _StatusToggleRow(
+                                  kind: _kind,
+                                  status: _status,
+                                  onChanged: (status) =>
+                                      setState(() => _status = status),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 20),
@@ -543,6 +550,38 @@ class _PriorityInput extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatusToggleRow extends StatelessWidget {
+  const _StatusToggleRow({
+    required this.kind,
+    required this.status,
+    required this.onChanged,
+  });
+
+  final TodoKind kind;
+  final TodoStatus status;
+  final ValueChanged<TodoStatus> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kind == TodoKind.duration) {
+      return const ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text('完成状态'),
+        subtitle: Text('持续时间待办按结束时间自动完成，当前不支持手动切换。'),
+      );
+    }
+    final done = status == TodoStatus.done;
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: const Text('完成状态'),
+      subtitle: Text(done ? '已完成' : '未完成'),
+      value: done,
+      onChanged: (value) =>
+          onChanged(value ? TodoStatus.done : TodoStatus.open),
     );
   }
 }

@@ -27,12 +27,13 @@
 - `frontend/lib/core/widgets/right_sidebar_shell.dart`：右侧侧栏壳。
 - `frontend/lib/core/widgets/state_views.dart`：空态、加载态、错误态、禁用态。
 - `frontend/lib/core/widgets/placeholder_page.dart`：后续任务用的占位页面壳。
+- `frontend/lib/core/time/app_clock.dart`：统一当前时间来源；运行时使用系统时间，测试可注入 `FixedAppClock`，避免 UI/source 到处直接调用 `DateTime.now()`。
 
 ## 数据边界
 
 - `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft` 和周次匹配规则；`todo.dart` 已包含 `TodoItem`、`TodoDraft`、`TodoPatch`、`TodoFilter`、PATCH 字段语义和筛选匹配。
-- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、创建、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、批量删除、批量完成和基础搜索；`QuickTodoRepository` 封装一句话创建边界。
-- `frontend/lib/data/sources/local/`：本地 source；`LocalTodoSource` 维护内存待办列表、排序/筛选/duration 自动完成/批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办。
+- `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、创建、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、取消完成、完成状态切换、批量删除、批量完成和基础搜索；`RepositoryFactory.local(clock)` 负责把统一时间来源注入本地 source；`QuickTodoRepository` 封装一句话创建边界。
+- `frontend/lib/data/sources/local/`：本地 source；`LocalCourseSource` 维护内存课程列表、课程名稳定颜色、下一节课计算和 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 维护内存待办列表、排序/筛选/duration 自动完成/批量规则，`LocalTagSource` 维护预置 tag 和新增 tag，`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办。
 - `frontend/lib/data/sources/mock/`：mock 边界占位；默认不启用 mock 数据。
 - `frontend/lib/data/sources/remote/`：未来后端边界占位；UI 不得直接调用。
 

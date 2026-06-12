@@ -1,6 +1,10 @@
+import '../../../core/time/app_clock.dart';
 import '../../models/course.dart';
 
 class LocalCourseSource {
+  LocalCourseSource({this.clock = const AppClock()});
+
+  final AppClock clock;
   final List<Course> _courses = <Course>[];
   final Map<String, String> _colorByName = <String, String>{};
 
@@ -17,11 +21,36 @@ class LocalCourseSource {
 
   Future<Course?> getNextCourse() async {
     final courses = await getCoursesForWeek(1);
-    return courses.isEmpty ? null : courses.first;
+    final now = clock.now();
+    final today = now.weekday;
+    final upcoming = courses.where((course) {
+      if (course.dayOfWeek > today) {
+        return true;
+      }
+      if (course.dayOfWeek < today) {
+        return false;
+      }
+      final start = defaultPeriodTimes
+          .where((period) => period.period == course.startPeriod)
+          .firstOrNull;
+      if (start == null) {
+        return true;
+      }
+      final parts = start.start.split(':').map(int.parse).toList();
+      final startTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        parts[0],
+        parts[1],
+      );
+      return !startTime.isBefore(now);
+    }).toList();
+    return upcoming.isEmpty ? null : upcoming.first;
   }
 
   Future<Course> createCourse(CourseDraft draft) async {
-    final now = DateTime.now();
+    final now = clock.now();
     final course = Course(
       id: 'course-${now.microsecondsSinceEpoch}',
       name: draft.name.trim(),
@@ -61,4 +90,31 @@ class LocalCourseSource {
       return colorKeys[hash % colorKeys.length];
     });
   }
+}
+
+const defaultPeriodTimes = <PeriodTimeConfig>[
+  PeriodTimeConfig(period: 1, start: '08:00', end: '08:50'),
+  PeriodTimeConfig(period: 2, start: '09:00', end: '09:50'),
+  PeriodTimeConfig(period: 3, start: '10:10', end: '11:00'),
+  PeriodTimeConfig(period: 4, start: '11:10', end: '12:00'),
+  PeriodTimeConfig(period: 5, start: '14:00', end: '14:50'),
+  PeriodTimeConfig(period: 6, start: '15:00', end: '15:50'),
+  PeriodTimeConfig(period: 7, start: '16:10', end: '17:00'),
+  PeriodTimeConfig(period: 8, start: '17:10', end: '18:00'),
+  PeriodTimeConfig(period: 9, start: '18:30', end: '19:20'),
+  PeriodTimeConfig(period: 10, start: '19:30', end: '20:20'),
+  PeriodTimeConfig(period: 11, start: '20:30', end: '21:20'),
+  PeriodTimeConfig(period: 12, start: '21:30', end: '22:20'),
+];
+
+class PeriodTimeConfig {
+  const PeriodTimeConfig({
+    required this.period,
+    required this.start,
+    required this.end,
+  });
+
+  final int period;
+  final String start;
+  final String end;
 }

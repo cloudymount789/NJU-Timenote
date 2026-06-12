@@ -47,10 +47,10 @@ class TodoItem {
 
   DateTime? get sortAt => deadlineAt ?? startAt;
 
-  bool get isDurationLocked {
+  bool isDurationLockedAt(DateTime now) {
     return kind == TodoKind.duration &&
         status == TodoStatus.open &&
-        (endAt == null || endAt!.isAfter(DateTime.now()));
+        (endAt == null || endAt!.isAfter(now));
   }
 
   TodoItem copyWith({
@@ -194,7 +194,7 @@ class TodoFilter {
   const TodoFilter({
     this.date,
     this.kinds = const [],
-    this.statuses = const [],
+    this.statuses = const [TodoStatus.open, TodoStatus.done],
     this.tags = const [],
     this.onlyDeadline = false,
   });
@@ -212,7 +212,7 @@ class TodoFilter {
     if (kinds.isNotEmpty && !kinds.contains(item.kind)) {
       return false;
     }
-    if (statuses.isNotEmpty && !statuses.contains(item.status)) {
+    if (!statuses.contains(item.status)) {
       return false;
     }
     if (tags.isNotEmpty && !item.tags.any(tags.contains)) {

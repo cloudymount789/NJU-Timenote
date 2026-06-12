@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nju_timenote/core/time/app_clock.dart';
 import 'package:nju_timenote/data/models/todo.dart';
 import 'package:nju_timenote/data/sources/local/local_tag_source.dart';
 import 'package:nju_timenote/data/sources/local/local_todo_source.dart';
@@ -10,6 +11,12 @@ void main() {
   setUp(() {
     tags = LocalTagSource();
     todos = LocalTodoSource(tags);
+  });
+
+  test('default todo filter includes open and done statuses', () {
+    const filter = TodoFilter();
+
+    expect(filter.statuses, containsAll([TodoStatus.open, TodoStatus.done]));
   });
 
   test(
@@ -63,8 +70,17 @@ void main() {
     expect(result.single.title, 'DDL');
   });
 
+  test('empty status filter returns no todos', () async {
+    await todos.createTodo(const TodoDraft(title: '普通'));
+
+    final result = await todos.getTodos(const TodoFilter(statuses: []));
+
+    expect(result, isEmpty);
+  });
+
   test('auto-completes expired duration todos on query', () async {
-    final now = DateTime.now();
+    final now = DateTime(2026, 6, 12, 12);
+    todos = LocalTodoSource(tags, clock: FixedAppClock(now));
     final todo = await todos.createTodo(
       TodoDraft(
         title: '已结束持续事项',
@@ -80,7 +96,8 @@ void main() {
   });
 
   test('batch complete skips duration todos', () async {
-    final now = DateTime.now();
+    final now = DateTime(2026, 6, 12, 12);
+    todos = LocalTodoSource(tags, clock: FixedAppClock(now));
     final normal = await todos.createTodo(const TodoDraft(title: '普通'));
     final duration = await todos.createTodo(
       TodoDraft(
@@ -95,6 +112,41 @@ void main() {
 
     expect((await todos.getTodoById(normal.id))?.status, TodoStatus.done);
     expect((await todos.getTodoById(duration.id))?.status, TodoStatus.open);
+  });
+
+  test('normal and deadline todos can be completed and reopened', () async {
+    final normal = await todos.createTodo(const TodoDraft(title: '普通'));
+    final completed = await todos.toggleTodoCompletion(normal.id);
+    final reopened = await todos.toggleTodoCompletion(normal.id);
+
+    expect(completed.status, TodoStatus.done);
+    expect(reopened.status, TodoStatus.open);
+  });
+
+  test('duration manual completion restriction remains intact', () async {
+    final now = DateTime(2026, 6, 12, 12);
+    todos = LocalTodoSource(tags, clock: FixedAppClock(now));
+    final duration = await todos.createTodo(
+      TodoDraft(
+        title: '未结束持续事项',
+        kind: TodoKind.duration,
+        startAt: now,
+        endAt: now.add(const Duration(hours: 1)),
+      ),
+    );
+
+    expect(todos.toggleTodoCompletion(duration.id), throwsStateError);
+    expect((await todos.getTodoById(duration.id))?.status, TodoStatus.open);
+  });
+
+  test('fixed clock is used for created and updated timestamps', () async {
+    final fixedNow = DateTime(2026, 6, 12, 9, 41);
+    todos = LocalTodoSource(tags, clock: FixedAppClock(fixedNow));
+
+    final todo = await todos.createTodo(const TodoDraft(title: '固定时间'));
+
+    expect(todo.createdAt, fixedNow);
+    expect(todo.updatedAt, fixedNow);
   });
 
   test(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nju_timenote/core/time/app_clock.dart';
 import 'package:nju_timenote/data/models/course.dart';
 import 'package:nju_timenote/data/sources/local/local_course_source.dart';
 import 'package:nju_timenote/features/schedule/schedule_page.dart';
@@ -67,6 +68,29 @@ void main() {
     expect(await source.getCoursesForWeek(2), hasLength(1));
   });
 
+  test('local course source uses injected clock for timestamps', () async {
+    final fixedNow = DateTime(2026, 6, 12, 9, 41);
+    final source = LocalCourseSource(clock: FixedAppClock(fixedNow));
+
+    final course = await source.createCourse(
+      const CourseDraft(
+        name: '课程',
+        teacher: '',
+        location: '教室',
+        note: '',
+        dayOfWeek: 5,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+      ),
+    );
+
+    expect(course.createdAt, fixedNow);
+    expect(course.updatedAt, fixedNow);
+  });
+
   testWidgets('timetable renders spanning and conflicting courses', (
     tester,
   ) async {
@@ -122,5 +146,30 @@ void main() {
 
     expect(find.text('跨节课程'), findsWidgets);
     expect(find.text('冲突课程'), findsOneWidget);
+  });
+
+  testWidgets('timetable shows period times and highlights today', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 390,
+            height: 760,
+            child: TimetableView(
+              courses: const [],
+              todayWeekday: 4,
+              onDeleteCourse: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('08:00'), findsOneWidget);
+    expect(find.text('08:50'), findsOneWidget);
+    final thursday = tester.widget<Text>(find.text('周四'));
+    expect(thursday.style?.color, const Color(0xFF0062FF));
   });
 }

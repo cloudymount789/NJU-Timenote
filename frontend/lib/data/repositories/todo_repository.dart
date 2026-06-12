@@ -9,6 +9,8 @@ abstract class TodoRepository {
   Future<TodoItem> updateTodo(String todoId, TodoPatch patch);
   Future<void> deleteTodo(String todoId);
   Future<TodoItem> completeTodo(String todoId);
+  Future<TodoItem> reopenTodo(String todoId);
+  Future<TodoItem> toggleTodoCompletion(String todoId);
   Future<void> batchDelete(List<String> todoIds);
   Future<List<TodoItem>> batchComplete(List<String> todoIds);
 }

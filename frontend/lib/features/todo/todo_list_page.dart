@@ -78,7 +78,9 @@ class _TodoListPageState extends State<TodoListPage> {
 
   Future<void> _complete(TodoItem todo) async {
     try {
-      await AppScope.repositoriesOf(context).todos.completeTodo(todo.id);
+      await AppScope.repositoriesOf(
+        context,
+      ).todos.toggleTodoCompletion(todo.id);
       _refresh();
     } catch (error) {
       _showMessage('$error');
@@ -395,15 +397,15 @@ class _TodoRow extends StatelessWidget {
               )
             else if (todo.kind == TodoKind.duration)
               const Icon(Icons.timelapse, color: AppColors.subtle)
-            else if (!done)
-              IconButton(
-                tooltip: '完成',
-                onPressed: onComplete,
-                icon: const Icon(Icons.check_circle_outline),
-                color: AppColors.primary,
-              )
             else
-              const SizedBox(width: 40),
+              IconButton(
+                tooltip: done ? '取消完成' : '完成',
+                onPressed: onComplete,
+                icon: Icon(
+                  done ? Icons.undo_outlined : Icons.check_circle_outline,
+                ),
+                color: done ? AppColors.muted : AppColors.primary,
+              ),
           ],
         ),
       ),
@@ -524,7 +526,8 @@ class _TodoFilterSidebarState extends State<_TodoFilterSidebar> {
                 onSelected: (_) async {
                   final picked = await showDatePicker(
                     context: context,
-                    initialDate: _filter.date ?? DateTime.now(),
+                    initialDate:
+                        _filter.date ?? AppScope.clockOf(context).now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2035),
                   );

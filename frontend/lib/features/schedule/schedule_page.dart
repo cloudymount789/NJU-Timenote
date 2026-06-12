@@ -12,6 +12,7 @@ import '../../core/widgets/app_icon_button.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../core/widgets/state_views.dart';
 import '../../data/models/course.dart';
+import '../../data/sources/local/local_course_source.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -55,6 +56,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final now = AppScope.clockOf(context).now();
     return GradientPageScaffold(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 20, 12, 20),
@@ -102,6 +104,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   }
                   return TimetableView(
                     courses: courses,
+                    todayWeekday: now.weekday,
                     onDeleteCourse: _deleteCourse,
                   );
                 },
@@ -118,16 +121,18 @@ class TimetableView extends StatelessWidget {
   const TimetableView({
     required this.courses,
     required this.onDeleteCourse,
+    this.todayWeekday,
     super.key,
   });
 
   static const rowHeight = 58.0;
   static const headerHeight = 38.0;
-  static const periodWidth = 34.0;
+  static const periodWidth = 40.0;
   static const weekdays = <String>['一', '二', '三', '四', '五', '六', '日'];
 
   final List<Course> courses;
   final ValueChanged<Course> onDeleteCourse;
+  final int? todayWeekday;
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +152,7 @@ class TimetableView extends StatelessWidget {
               width: tableWidth,
               child: Column(
                 children: [
-                  _WeekHeader(dayWidth: dayWidth),
+                  _WeekHeader(dayWidth: dayWidth, todayWeekday: todayWeekday),
                   Expanded(
                     child: SingleChildScrollView(
                       child: SizedBox(
@@ -231,9 +236,10 @@ class TimetableView extends StatelessWidget {
 }
 
 class _WeekHeader extends StatelessWidget {
-  const _WeekHeader({required this.dayWidth});
+  const _WeekHeader({required this.dayWidth, required this.todayWeekday});
 
   final double dayWidth;
+  final int? todayWeekday;
 
   @override
   Widget build(BuildContext context) {
@@ -242,16 +248,37 @@ class _WeekHeader extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: TimetableView.periodWidth),
-          for (final day in TimetableView.weekdays)
+          for (var index = 0; index < TimetableView.weekdays.length; index += 1)
             SizedBox(
               width: dayWidth,
               child: Center(
-                child: Text(
-                  '周$day',
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: todayWeekday == index + 1
+                        ? const Color(0xFFE8F0FF)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: todayWeekday == index + 1
+                        ? Border.all(color: AppColors.primary)
+                        : null,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      '周${TimetableView.weekdays[index]}',
+                      style: TextStyle(
+                        color: todayWeekday == index + 1
+                            ? AppColors.primary
+                            : AppColors.muted,
+                        fontSize: 12,
+                        fontWeight: todayWeekday == index + 1
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -275,14 +302,51 @@ class _PeriodColumn extends StatelessWidget {
             SizedBox(
               height: TimetableView.rowHeight,
               child: Center(
-                child: Text(
-                  '$period',
-                  style: const TextStyle(color: AppColors.subtle, fontSize: 11),
-                ),
+                child: _PeriodLabel(periodTime: defaultPeriodTimes[period - 1]),
               ),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _PeriodLabel extends StatelessWidget {
+  const _PeriodLabel({required this.periodTime});
+
+  final PeriodTimeConfig periodTime;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '${periodTime.period}',
+          style: const TextStyle(
+            color: AppColors.ink,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            height: 0.95,
+          ),
+        ),
+        Text(
+          periodTime.start,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 8,
+            height: 0.95,
+          ),
+        ),
+        Text(
+          periodTime.end,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 8,
+            height: 0.95,
+          ),
+        ),
+      ],
     );
   }
 }

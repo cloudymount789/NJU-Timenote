@@ -1,11 +1,16 @@
+import '../../../core/time/app_clock.dart';
 import '../../models/todo.dart';
 import 'local_tag_source.dart';
 
 class LocalTodoSource {
-  LocalTodoSource(this._tagSource, {List<TodoItem>? initial})
-    : _items = [...?initial];
+  LocalTodoSource(
+    this._tagSource, {
+    this.clock = const AppClock(),
+    List<TodoItem>? initial,
+  }) : _items = [...?initial];
 
   final LocalTagSource _tagSource;
+  final AppClock clock;
   final List<TodoItem> _items;
   int _counter = 0;
 
@@ -48,7 +53,7 @@ class LocalTodoSource {
   Future<TodoItem> createTodo(TodoDraft draft) async {
     _validateDraft(draft);
     await _tagSource.addTags(draft.tags);
-    final now = DateTime.now();
+    final now = clock.now();
     final todo = TodoItem(
       id: 'todo-${now.microsecondsSinceEpoch}-${++_counter}',
       title: draft.title.trim(),
@@ -73,7 +78,7 @@ class LocalTodoSource {
     final index = _indexOf(todoId);
     final old = _items[index];
     final nextKind = patch.kind.isSet ? patch.kind.value! : old.kind;
-    final now = DateTime.now();
+    final now = clock.now();
     final nextTags = patch.tags.isSet
         ? _normalizeTags(patch.tags.value ?? const [])
         : old.tags;
@@ -133,6 +138,30 @@ class LocalTodoSource {
     );
   }
 
+  Future<TodoItem> reopenTodo(String todoId) async {
+    final item = await getTodoById(todoId);
+    if (item == null) {
+      throw StateError('待办不存在');
+    }
+    if (item.kind == TodoKind.duration) {
+      throw StateError('持续时间待办暂不支持手动取消完成');
+    }
+    return updateTodo(
+      todoId,
+      const TodoPatch(status: PatchField.value(TodoStatus.open)),
+    );
+  }
+
+  Future<TodoItem> toggleTodoCompletion(String todoId) async {
+    final item = await getTodoById(todoId);
+    if (item == null) {
+      throw StateError('待办不存在');
+    }
+    return item.status == TodoStatus.done
+        ? reopenTodo(todoId)
+        : completeTodo(todoId);
+  }
+
   Future<void> batchDelete(List<String> todoIds) async {
     final ids = todoIds.toSet();
     _items.removeWhere((item) => ids.contains(item.id));
@@ -151,7 +180,7 @@ class LocalTodoSource {
   }
 
   void _autoCompleteExpiredDurations() {
-    final now = DateTime.now();
+    final now = clock.now();
     for (var index = 0; index < _items.length; index += 1) {
       _items[index] = _items[index].withAutoCompletion(now);
     }

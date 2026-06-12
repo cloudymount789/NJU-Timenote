@@ -12,6 +12,7 @@ import 'recommendation_repository.dart';
 import 'settings_repository.dart';
 import 'tag_repository.dart';
 import 'todo_repository.dart';
+import '../../core/time/app_clock.dart';
 import '../models/course.dart';
 import '../models/goal_split.dart';
 import '../models/recommendation.dart';
@@ -21,11 +22,11 @@ import '../models/todo.dart';
 class RepositoryFactory {
   const RepositoryFactory._();
 
-  static AppRepositories local() {
+  static AppRepositories local([AppClock clock = const AppClock()]) {
     final tagSource = LocalTagSource();
-    final todoSource = LocalTodoSource(tagSource);
+    final todoSource = LocalTodoSource(tagSource, clock: clock);
     return AppRepositories(
-      courses: LocalCourseRepository(LocalCourseSource()),
+      courses: LocalCourseRepository(LocalCourseSource(clock: clock)),
       todos: LocalTodoRepository(todoSource),
       tags: LocalTagRepository(tagSource),
       settings: LocalSettingsRepository(LocalSettingsSource()),
@@ -112,6 +113,16 @@ class LocalTodoRepository implements TodoRepository {
   @override
   Future<TodoItem> completeTodo(String todoId) {
     return _source.completeTodo(todoId);
+  }
+
+  @override
+  Future<TodoItem> reopenTodo(String todoId) {
+    return _source.reopenTodo(todoId);
+  }
+
+  @override
+  Future<TodoItem> toggleTodoCompletion(String todoId) {
+    return _source.toggleTodoCompletion(todoId);
   }
 
   @override
