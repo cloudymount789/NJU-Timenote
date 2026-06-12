@@ -7,7 +7,6 @@ import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialogs.dart';
-import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_icon_button.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../core/widgets/state_views.dart';
@@ -70,49 +69,26 @@ class _SchedulePageState extends State<SchedulePage> {
     final now = AppScope.clockOf(context).now();
     return GradientPageScaffold(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 20, 12, 20),
+        padding: const EdgeInsets.fromLTRB(8, 16, 8, 16),
         child: Column(
           children: [
-            AppHeader(
-              title: '课表',
-              subtitle: '第 $_currentWeek 周',
+            _ScheduleHeader(
               onBack: () =>
                   Navigator.of(context).popUntil((route) => route.isFirst),
-              trailing: AppIconButton(
-                icon: Icons.add,
-                tooltip: '添加课表',
-                onPressed: () async {
-                  await Navigator.of(context).pushNamed(AppRoutes.scheduleAdd);
-                  if (mounted) {
-                    setState(_loadCourses);
-                  }
-                },
-                size: 36,
-              ),
+              onAdd: () async {
+                await Navigator.of(context).pushNamed(AppRoutes.scheduleAdd);
+                if (mounted) {
+                  setState(_loadCourses);
+                }
+              },
             ),
-            Row(
-              children: [
-                IconButton(
-                  tooltip: '上一周',
-                  onPressed: _currentWeek == 1 ? null : () => _changeWeek(-1),
-                  icon: const Icon(Icons.chevron_left),
-                ),
-                Text(
-                  '第 $_currentWeek 周',
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                IconButton(
-                  tooltip: '下一周',
-                  onPressed: _currentWeek == 25 ? null : () => _changeWeek(1),
-                  icon: const Icon(Icons.chevron_right),
-                ),
-              ],
+            const SizedBox(height: 2),
+            _WeekSwitcher(
+              currentWeek: _currentWeek,
+              onPrevious: _currentWeek == 1 ? null : () => _changeWeek(-1),
+              onNext: _currentWeek == 25 ? null : () => _changeWeek(1),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             Expanded(
               child: FutureBuilder<List<Course>>(
                 future: _coursesFuture,
@@ -124,17 +100,6 @@ class _SchedulePageState extends State<SchedulePage> {
                     return const AppCard(child: ErrorState(message: '无法读取课表。'));
                   }
                   final courses = snapshot.data ?? const <Course>[];
-                  if (courses.isEmpty) {
-                    return const AppCard(
-                      child: Center(
-                        child: EmptyState(
-                          title: '暂无课程',
-                          message: '点击右上角加号添加第一门课。',
-                          icon: Icons.calendar_month_outlined,
-                        ),
-                      ),
-                    );
-                  }
                   return TimetableView(
                     courses: courses,
                     week: _currentWeek,
@@ -161,6 +126,102 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 }
 
+class _ScheduleHeader extends StatelessWidget {
+  const _ScheduleHeader({required this.onBack, required this.onAdd});
+
+  final VoidCallback onBack;
+  final VoidCallback onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 58,
+      child: Row(
+        children: [
+          AppIconButton(
+            icon: Icons.chevron_left,
+            tooltip: '返回',
+            onPressed: onBack,
+            size: 34,
+          ),
+          const SizedBox(width: 4),
+          const Expanded(
+            child: Text(
+              '课表',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AppColors.ink,
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+                height: 1.1,
+              ),
+            ),
+          ),
+          AppIconButton(
+            icon: Icons.add,
+            tooltip: '添加课表',
+            onPressed: onAdd,
+            size: 34,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekSwitcher extends StatelessWidget {
+  const _WeekSwitcher({
+    required this.currentWeek,
+    required this.onPrevious,
+    required this.onNext,
+  });
+
+  final int currentWeek;
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.54),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: '上一周',
+                onPressed: onPrevious,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.chevron_left, size: 24),
+              ),
+              Text(
+                '第 $currentWeek 周',
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              IconButton(
+                tooltip: '下一周',
+                onPressed: onNext,
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.chevron_right, size: 24),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class TimetableView extends StatelessWidget {
   const TimetableView({
     required this.courses,
@@ -172,9 +233,9 @@ class TimetableView extends StatelessWidget {
     super.key,
   });
 
-  static const rowHeight = 58.0;
-  static const headerHeight = 38.0;
-  static const periodWidth = 40.0;
+  static const rowHeight = 55.0;
+  static const headerHeight = 42.0;
+  static const periodWidth = 38.0;
   static const weekdays = <String>['一', '二', '三', '四', '五', '六', '日'];
 
   final List<Course> courses;
@@ -189,10 +250,11 @@ class TimetableView extends StatelessWidget {
     return AppCard(
       padding: EdgeInsets.zero,
       radius: 12,
+      shadowPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final dayWidth = math.max(
-            46.0,
+            45.0,
             (constraints.maxWidth - periodWidth) / 7,
           );
           final tableWidth = periodWidth + dayWidth * 7;
@@ -211,26 +273,38 @@ class TimetableView extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: SizedBox(
-                        height: rowHeight * 12,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const _PeriodColumn(),
-                            SizedBox(
-                              width: dayWidth * 7,
-                              height: rowHeight * 12,
-                              child: Stack(
-                                children: [
-                                  _GridLines(dayWidth: dayWidth),
-                                  ..._buildCourseBlocks(dayWidth),
-                                ],
-                              ),
+                    child: Stack(
+                      children: [
+                        SingleChildScrollView(
+                          child: SizedBox(
+                            height: rowHeight * 12,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const _PeriodColumn(),
+                                SizedBox(
+                                  width: dayWidth * 7,
+                                  height: rowHeight * 12,
+                                  child: Stack(
+                                    children: [
+                                      _GridLines(dayWidth: dayWidth),
+                                      ..._buildCourseBlocks(dayWidth),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        if (courses.isEmpty)
+                          const Center(
+                            child: EmptyState(
+                              title: '暂无课程',
+                              message: '点击右上角加号添加第一门课。',
+                              icon: Icons.calendar_month_outlined,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
@@ -274,15 +348,15 @@ class TimetableView extends StatelessWidget {
             item.start == segment.start &&
             item.end == segment.end,
       );
-      final blockWidth = (dayWidth - 1.5) / conflictCount;
+      final blockWidth = (dayWidth - 1) / conflictCount;
       return Positioned(
         left:
             (segment.course.dayOfWeek - 1) * dayWidth +
-            0.75 +
+            0.5 +
             math.max(0, conflictIndex) * blockWidth,
-        top: (segment.start - 1) * rowHeight + 1.5,
-        width: blockWidth - 1.5,
-        height: (segment.end - segment.start + 1) * rowHeight - 3,
+        top: (segment.start - 1) * rowHeight + 1,
+        width: blockWidth - 1,
+        height: (segment.end - segment.start + 1) * rowHeight - 2,
         child: _CourseBlock(
           segment: segment,
           onTap: () => onOpenCourse(segment.course),

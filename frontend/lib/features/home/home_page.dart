@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../app/app.dart';
 import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_spacing.dart';
 import '../../core/widgets/app_bottom_input_bar.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_header.dart';
@@ -28,10 +27,10 @@ class HomePage extends StatelessWidget {
           final compact = height < 720;
           final veryCompact = height < 650;
           final horizontalPadding = veryCompact
-              ? 18.0
+              ? 14.0
               : compact
-              ? AppSpacing.pageX
-              : 28.0;
+              ? 18.0
+              : 20.0;
           final topPadding = veryCompact
               ? 8.0
               : compact
@@ -72,7 +71,7 @@ class HomePage extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       AppHeader(
-                        title: '今天也要加油啊',
+                        title: '今天也要加油啊 ♥',
                         subtitle: 'NJU Timenote',
                         trailing: AppIconButton(
                           icon: Icons.settings_outlined,
