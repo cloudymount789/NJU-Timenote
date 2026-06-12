@@ -47,6 +47,8 @@ class TodoItem {
 
   DateTime? get sortAt => deadlineAt ?? startAt;
 
+  bool get isRecurring => repeatRule != RepeatRule.once;
+
   bool isDurationLockedAt(DateTime now) {
     return kind == TodoKind.duration &&
         status == TodoStatus.open &&

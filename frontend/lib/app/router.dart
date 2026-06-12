@@ -124,6 +124,6 @@ class AppRouter {
         page = const HomePage();
     }
 
-    return MaterialPageRoute<void>(builder: (_) => page, settings: settings);
+    return MaterialPageRoute<dynamic>(builder: (_) => page, settings: settings);
   }
 }

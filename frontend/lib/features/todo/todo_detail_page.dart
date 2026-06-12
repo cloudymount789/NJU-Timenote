@@ -148,7 +148,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
         );
       }
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (error) {
       _showMessage('保存失败：$error');
@@ -169,7 +169,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
     try {
       await repo.deleteTodo(widget.todoId!);
       if (mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (error) {
       _showMessage('删除失败：$error');
@@ -202,12 +202,107 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
     onPicked(DateTime(date.year, date.month, date.day, time.hour, time.minute));
   }
 
+  Future<void> _pickRepeatDeadline() async {
+    final seed = _deadlineAt ?? AppScope.clockOf(context).now();
+    var date = seed;
+    if (_repeatRule == RepeatRule.weekly ||
+        _repeatRule == RepeatRule.biweekly) {
+      final weekday = await _pickWeekday(seed.weekday);
+      if (weekday == null || !mounted) {
+        return;
+      }
+      date = _dateForWeekday(AppScope.clockOf(context).now(), weekday);
+    }
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(seed),
+      helpText: '选择 DDL 时间',
+    );
+    if (time == null) {
+      return;
+    }
+    setState(() {
+      _deadlineAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    });
+  }
+
+  Future<void> _pickRepeatDuration() async {
+    final now = AppScope.clockOf(context).now();
+    final startSeed = _startAt ?? now;
+    final endSeed = _endAt ?? startSeed.add(const Duration(hours: 1));
+    var date = startSeed;
+    if (_repeatRule == RepeatRule.weekly ||
+        _repeatRule == RepeatRule.biweekly) {
+      final weekday = await _pickWeekday(startSeed.weekday);
+      if (weekday == null || !mounted) {
+        return;
+      }
+      date = _dateForWeekday(now, weekday);
+    } else {
+      date = DateTime(now.year, now.month, now.day);
+    }
+    final startTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(startSeed),
+      helpText: '选择开始时间',
+    );
+    if (startTime == null || !mounted) {
+      return;
+    }
+    final endTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(endSeed),
+      helpText: '选择结束时间',
+    );
+    if (endTime == null) {
+      return;
+    }
+    setState(() {
+      _startAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        startTime.hour,
+        startTime.minute,
+      );
+      _endAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        endTime.hour,
+        endTime.minute,
+      );
+    });
+  }
+
+  Future<int?> _pickWeekday(int initialWeekday) {
+    return showDialog<int>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('选择周几'),
+        children: [
+          for (var weekday = 1; weekday <= 7; weekday += 1)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(context).pop(weekday),
+              child: Row(
+                children: [
+                  Expanded(child: Text(_weekdayName(weekday))),
+                  if (weekday == initialWeekday)
+                    const Icon(Icons.check, color: AppColors.primary),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openTags() async {
-    final result = await Navigator.of(context).pushNamed<List<String>>(
+    final result = await Navigator.of(context).pushNamed(
       AppRoutes.todoTags,
       arguments: TodoTagRouteArgs(initialTags: _tags),
     );
-    if (result != null) {
+    if (result is List<String>) {
       setState(() => _tags = result);
     }
   }
@@ -263,7 +358,10 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       ),
     );
     if (result != null) {
-      setState(() => _repeatRule = result);
+      setState(() {
+        _repeatRule = result;
+        _coerceRepeatTimes();
+      });
     }
   }
 
@@ -280,7 +378,23 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       } else {
         _deadlineAt = null;
       }
+      _coerceRepeatTimes();
     });
+  }
+
+  void _coerceRepeatTimes() {
+    if (_repeatRule == RepeatRule.once) {
+      return;
+    }
+    final now = AppScope.clockOf(context).now();
+    final date = DateTime(now.year, now.month, now.day);
+    if (_kind == TodoKind.deadline && _deadlineAt == null) {
+      _deadlineAt = DateTime(date.year, date.month, date.day, 23, 59);
+    }
+    if (_kind == TodoKind.duration) {
+      _startAt ??= DateTime(date.year, date.month, date.day, now.hour, 0);
+      _endAt ??= _startAt!.add(const Duration(hours: 1));
+    }
   }
 
   void _showMessage(String message) {
@@ -323,39 +437,63 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
                                 maxLines: 3,
                               ),
                               _Input(label: '地点', controller: _location),
+                              _PickerRow(
+                                label: '重复',
+                                value: _repeatLabel(_repeatRule),
+                                onTap: _openRepeatDialog,
+                              ),
                               _KindSelector(value: _kind, onChanged: _setKind),
                               if (_kind == TodoKind.duration) ...[
                                 _PickerRow(
-                                  label: '开始时间',
-                                  value: _formatDateTime(_startAt),
-                                  onTap: () => _pickTime(
-                                    label: '选择开始时间',
-                                    initial: _startAt,
-                                    onPicked: (value) =>
-                                        setState(() => _startAt = value),
-                                  ),
+                                  label: _repeatRule == RepeatRule.once
+                                      ? '开始时间'
+                                      : '重复时段',
+                                  value: _repeatRule == RepeatRule.once
+                                      ? _formatDateTime(_startAt)
+                                      : _formatRepeatRange(
+                                          _repeatRule,
+                                          _startAt,
+                                          _endAt,
+                                        ),
+                                  onTap: _repeatRule == RepeatRule.once
+                                      ? () => _pickTime(
+                                          label: '选择开始时间',
+                                          initial: _startAt,
+                                          onPicked: (value) =>
+                                              setState(() => _startAt = value),
+                                        )
+                                      : _pickRepeatDuration,
                                 ),
-                                _PickerRow(
-                                  label: '结束时间',
-                                  value: _formatDateTime(_endAt),
-                                  onTap: () => _pickTime(
-                                    label: '选择结束时间',
-                                    initial: _endAt,
-                                    onPicked: (value) =>
-                                        setState(() => _endAt = value),
+                                if (_repeatRule == RepeatRule.once)
+                                  _PickerRow(
+                                    label: '结束时间',
+                                    value: _formatDateTime(_endAt),
+                                    onTap: () => _pickTime(
+                                      label: '选择结束时间',
+                                      initial: _endAt,
+                                      onPicked: (value) =>
+                                          setState(() => _endAt = value),
+                                    ),
                                   ),
-                                ),
                               ],
                               if (_kind == TodoKind.deadline)
                                 _PickerRow(
                                   label: 'DDL',
-                                  value: _formatDateTime(_deadlineAt),
-                                  onTap: () => _pickTime(
-                                    label: '选择 DDL',
-                                    initial: _deadlineAt,
-                                    onPicked: (value) =>
-                                        setState(() => _deadlineAt = value),
-                                  ),
+                                  value: _repeatRule == RepeatRule.once
+                                      ? _formatDateTime(_deadlineAt)
+                                      : _formatRepeatDeadline(
+                                          _repeatRule,
+                                          _deadlineAt,
+                                        ),
+                                  onTap: _repeatRule == RepeatRule.once
+                                      ? () => _pickTime(
+                                          label: '选择 DDL',
+                                          initial: _deadlineAt,
+                                          onPicked: (value) => setState(
+                                            () => _deadlineAt = value,
+                                          ),
+                                        )
+                                      : _pickRepeatDeadline,
                                 ),
                               _PriorityInput(
                                 value: _priority,
@@ -366,11 +504,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
                                 label: 'Tag',
                                 value: _tags.isEmpty ? '未选择' : _tags.join('、'),
                                 onTap: _openTags,
-                              ),
-                              _PickerRow(
-                                label: '重复',
-                                value: _repeatLabel(_repeatRule),
-                                onTap: _openRepeatDialog,
+                                key: const ValueKey('todo-tag-picker'),
                               ),
                               if (!widget.isCreate)
                                 _StatusToggleRow(
@@ -442,9 +576,12 @@ class _FormCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-        child: Column(children: children),
+      child: Material(
+        color: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: Column(children: children),
+        ),
       ),
     );
   }
@@ -502,6 +639,7 @@ class _PickerRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onTap,
+    super.key,
   });
 
   final String label;
@@ -510,12 +648,15 @@ class _PickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label),
-      subtitle: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(label),
+        subtitle: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
+      ),
     );
   }
 }
@@ -594,6 +735,37 @@ String _formatDateTime(DateTime? value) {
       '${value.minute.toString().padLeft(2, '0')}';
 }
 
+String _formatRepeatDeadline(RepeatRule rule, DateTime? value) {
+  if (value == null) {
+    return '未设置';
+  }
+  final time = _formatTime(value);
+  return switch (rule) {
+    RepeatRule.once => _formatDateTime(value),
+    RepeatRule.daily => '每天 $time',
+    RepeatRule.weekly => '每周 ${_weekday(value)} $time',
+    RepeatRule.biweekly => '每两周 ${_weekday(value)} $time',
+  };
+}
+
+String _formatRepeatRange(RepeatRule rule, DateTime? start, DateTime? end) {
+  if (start == null || end == null) {
+    return '未设置';
+  }
+  final range = '${_formatTime(start)} - ${_formatTime(end)}';
+  return switch (rule) {
+    RepeatRule.once => '${_formatDateTime(start)} - ${_formatTime(end)}',
+    RepeatRule.daily => '每天 $range',
+    RepeatRule.weekly => '每周 ${_weekday(start)} $range',
+    RepeatRule.biweekly => '每两周 ${_weekday(start)} $range',
+  };
+}
+
+String _formatTime(DateTime value) {
+  return '${value.hour.toString().padLeft(2, '0')}:'
+      '${value.minute.toString().padLeft(2, '0')}';
+}
+
 String _repeatLabel(RepeatRule rule) {
   return switch (rule) {
     RepeatRule.once => '仅一次',
@@ -604,5 +776,14 @@ String _repeatLabel(RepeatRule rule) {
 }
 
 String _weekday(DateTime value) {
-  return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][value.weekday - 1];
+  return _weekdayName(value.weekday);
+}
+
+String _weekdayName(int weekday) {
+  return const ['周一', '周二', '周三', '周四', '周五', '周六', '周日'][weekday - 1];
+}
+
+DateTime _dateForWeekday(DateTime reference, int weekday) {
+  final date = DateTime(reference.year, reference.month, reference.day);
+  return date.add(Duration(days: weekday - reference.weekday));
 }

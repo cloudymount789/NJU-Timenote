@@ -44,10 +44,12 @@ class _TodoListPageState extends State<TodoListPage> {
     return AppScope.repositoriesOf(context).todos.getTodos(_filter);
   }
 
-  void _refresh() {
+  Future<void> _refresh() async {
+    final future = _load();
     setState(() {
-      _future = _load();
+      _future = future;
     });
+    await future.catchError((_) => <TodoItem>[]);
   }
 
   void _goHome() {
@@ -74,7 +76,19 @@ class _TodoListPageState extends State<TodoListPage> {
       AppRoutes.todoDetail,
       arguments: TodoDetailRouteArgs(todoId: todo.id),
     );
-    _refresh();
+    if (mounted) {
+      await _refresh();
+    }
+  }
+
+  Future<void> _openCreateDetail() async {
+    await Navigator.of(context).pushNamed(
+      AppRoutes.todoDetail,
+      arguments: const TodoDetailRouteArgs(isCreate: true),
+    );
+    if (mounted) {
+      await _refresh();
+    }
   }
 
   Future<void> _complete(TodoItem todo) async {
@@ -82,7 +96,7 @@ class _TodoListPageState extends State<TodoListPage> {
       await AppScope.repositoriesOf(
         context,
       ).todos.toggleTodoCompletion(todo.id);
-      _refresh();
+      await _refresh();
     } catch (error) {
       _showMessage('$error');
     }
@@ -104,14 +118,13 @@ class _TodoListPageState extends State<TodoListPage> {
         _future = _load();
       });
     } else {
-      _refresh();
+      await _refresh();
     }
   }
 
   bool get _isFilterActive {
     const initial = TodoFilter();
-    return _filter.onlyDeadline ||
-        _filter.date != null ||
+    return _filter.date != null ||
         _filter.kinds.length != initial.kinds.length ||
         !_filter.kinds.every(initial.kinds.contains) ||
         _filter.statuses.length != initial.statuses.length ||
@@ -131,22 +144,22 @@ class _TodoListPageState extends State<TodoListPage> {
     }
     await AppScope.repositoriesOf(context).todos.smartSortTodos();
     if (mounted) {
-      _refresh();
+      await _refresh();
     }
   }
 
   Future<void> _reorderVisible(int oldIndex, int newIndex) async {
     final repo = AppScope.repositoriesOf(context).todos;
     final todos = await (_future ?? Future.value(const <TodoItem>[]));
-    if (newIndex > oldIndex) {
-      newIndex -= 1;
-    }
     final ordered = [...todos];
     final moved = ordered.removeAt(oldIndex);
     ordered.insert(newIndex, moved);
+    setState(() {
+      _future = Future.value(ordered);
+    });
     await repo.reorderTodos(ordered.map((todo) => todo.id).toList());
     if (mounted) {
-      _refresh();
+      await _refresh();
     }
   }
 
@@ -233,6 +246,12 @@ class _TodoListPageState extends State<TodoListPage> {
                     )
                   else ...[
                     AppIconButton(
+                      icon: Icons.checklist,
+                      tooltip: '批量操作',
+                      onPressed: () => setState(() => _batchMode = true),
+                    ),
+                    const SizedBox(width: 8),
+                    AppIconButton(
                       icon: Icons.filter_alt_outlined,
                       tooltip: '筛选',
                       onPressed: _openFilter,
@@ -242,15 +261,9 @@ class _TodoListPageState extends State<TodoListPage> {
                     ),
                     const SizedBox(width: 8),
                     AppIconButton(
-                      icon: Icons.checklist,
-                      tooltip: '批量操作',
-                      onPressed: () => setState(() => _batchMode = true),
-                    ),
-                    const SizedBox(width: 8),
-                    AppIconButton(
-                      icon: Icons.auto_awesome_motion_outlined,
-                      tooltip: '智能排序',
-                      onPressed: _smartSort,
+                      icon: Icons.add,
+                      tooltip: '添加待办',
+                      onPressed: _openCreateDetail,
                     ),
                   ],
                 ],
@@ -267,6 +280,8 @@ class _TodoListPageState extends State<TodoListPage> {
                     onTap: _openDetail,
                     onComplete: _complete,
                     onReorder: _reorderVisible,
+                    onSmartSort: _smartSort,
+                    onRefresh: _refresh,
                   ),
                   if (_batchMode)
                     Positioned(
@@ -288,9 +303,10 @@ class _TodoListPageState extends State<TodoListPage> {
                   final created = await showCreateTodoSheet(
                     context,
                     navigateToTodosOnSubmit: false,
+                    onTodosChanged: _refresh,
                   );
                   if (created == true && mounted) {
-                    _refresh();
+                    await _refresh();
                   }
                 },
                 onSearchTap: () =>
@@ -314,6 +330,8 @@ class _TodoListCard extends StatelessWidget {
     required this.onTap,
     required this.onComplete,
     required this.onReorder,
+    required this.onSmartSort,
+    required this.onRefresh,
   });
 
   final Future<List<TodoItem>> future;
@@ -322,6 +340,8 @@ class _TodoListCard extends StatelessWidget {
   final ValueChanged<TodoItem> onTap;
   final ValueChanged<TodoItem> onComplete;
   final void Function(int oldIndex, int newIndex) onReorder;
+  final VoidCallback onSmartSort;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -346,15 +366,44 @@ class _TodoListCard extends StatelessWidget {
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const LoadingState();
+            return Column(
+              children: [
+                if (!batchMode) _SmartSortHeader(onPressed: onSmartSort),
+                const Expanded(child: LoadingState()),
+              ],
+            );
           }
           if (snapshot.hasError) {
-            return ErrorState(message: '${snapshot.error}');
+            return Column(
+              children: [
+                if (!batchMode) _SmartSortHeader(onPressed: onSmartSort),
+                Expanded(child: ErrorState(message: '${snapshot.error}')),
+              ],
+            );
           }
           final todos = snapshot.data ?? const [];
           if (todos.isEmpty) {
-            return const Center(
-              child: EmptyState(title: '暂无待办', message: '可以从底部输入栏或新建详情页添加。'),
+            return Column(
+              children: [
+                if (!batchMode) _SmartSortHeader(onPressed: onSmartSort),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: onRefresh,
+                    child: ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: const [
+                        SizedBox(height: 160),
+                        Center(
+                          child: EmptyState(
+                            title: '暂无待办',
+                            message: '可以从底部输入栏或新建详情页添加。',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             );
           }
           var openIndex = 0;
@@ -366,7 +415,7 @@ class _TodoListCard extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '长按左侧三条杠可拖拽调整顺序',
+                      '长按左侧图标可拖拽调整顺序',
                       style: TextStyle(color: AppColors.muted, fontSize: 12),
                     ),
                   ),
@@ -398,27 +447,81 @@ class _TodoListCard extends StatelessWidget {
               ],
             );
           }
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
-            itemCount: todos.length,
-            separatorBuilder: (_, _) => const Divider(height: 1, indent: 54),
-            itemBuilder: (context, index) {
-              final todo = todos[index];
-              final number = todo.status == TodoStatus.open
-                  ? ++openIndex
-                  : null;
-              return _TodoRow(
-                todo: todo,
-                index: index,
-                number: number,
-                batchMode: batchMode,
-                selected: selectedIds.contains(todo.id),
-                onTap: () => onTap(todo),
-                onComplete: () => onComplete(todo),
-              );
-            },
+          return Column(
+            children: [
+              _SmartSortHeader(onPressed: onSmartSort),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: onRefresh,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(0, 4, 8, 8),
+                    itemCount: todos.length,
+                    separatorBuilder: (_, _) =>
+                        const Divider(height: 1, indent: 54),
+                    itemBuilder: (context, index) {
+                      final todo = todos[index];
+                      final number = todo.status == TodoStatus.open
+                          ? ++openIndex
+                          : null;
+                      return _TodoRow(
+                        todo: todo,
+                        index: index,
+                        number: number,
+                        batchMode: batchMode,
+                        selected: selectedIds.contains(todo.id),
+                        onTap: () => onTap(todo),
+                        onComplete: () => onComplete(todo),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _SmartSortHeader extends StatelessWidget {
+  const _SmartSortHeader({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 2),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  '智能排序',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -447,6 +550,11 @@ class _TodoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final done = todo.status == TodoStatus.done;
+    final overdueDeadline =
+        !done &&
+        todo.kind == TodoKind.deadline &&
+        todo.deadlineAt != null &&
+        !todo.deadlineAt!.isAfter(AppScope.clockOf(context).now());
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -495,7 +603,11 @@ class _TodoRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: done ? AppColors.subtle : AppColors.muted,
+                      color: overdueDeadline
+                          ? AppColors.danger
+                          : done
+                          ? AppColors.subtle
+                          : AppColors.muted,
                       fontSize: 12,
                     ),
                   ),

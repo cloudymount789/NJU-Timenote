@@ -10,6 +10,7 @@ Future<bool?> showCreateTodoSheet(
   BuildContext context, {
   String? initialText,
   bool navigateToTodosOnSubmit = true,
+  VoidCallback? onTodosChanged,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
@@ -21,6 +22,7 @@ Future<bool?> showCreateTodoSheet(
       parentContext: context,
       initialText: initialText,
       navigateToTodosOnSubmit: navigateToTodosOnSubmit,
+      onTodosChanged: onTodosChanged,
     ),
   );
 }
@@ -30,12 +32,14 @@ class CreateTodoSheet extends StatefulWidget {
     required this.parentContext,
     required this.navigateToTodosOnSubmit,
     this.initialText,
+    this.onTodosChanged,
     super.key,
   });
 
   final BuildContext parentContext;
   final bool navigateToTodosOnSubmit;
   final String? initialText;
+  final VoidCallback? onTodosChanged;
 
   @override
   State<CreateTodoSheet> createState() => _CreateTodoSheetState();
@@ -63,15 +67,20 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
   Future<void> _openGoalSplit(String? title) async {
     final navigator = Navigator.of(widget.parentContext);
     Navigator.of(context).pop();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final result = await navigator.pushNamed<String>(
-        AppRoutes.goalSplit,
-        arguments: GoalSplitRouteArgs(initialTitle: title),
+    final result = await navigator.pushNamed(
+      AppRoutes.goalSplit,
+      arguments: GoalSplitRouteArgs(initialTitle: title),
+    );
+    if (result is String && widget.parentContext.mounted) {
+      await showCreateTodoSheet(
+        widget.parentContext,
+        initialText: result,
+        navigateToTodosOnSubmit: widget.navigateToTodosOnSubmit,
+        onTodosChanged: widget.onTodosChanged,
       );
-      if (result != null && widget.parentContext.mounted) {
-        await showCreateTodoSheet(widget.parentContext, initialText: result);
-      }
-    });
+    } else {
+      widget.onTodosChanged?.call();
+    }
   }
 
   Future<void> _submit() async {
@@ -89,6 +98,7 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
         return;
       }
       Navigator.of(context).pop(true);
+      widget.onTodosChanged?.call();
       if (widget.navigateToTodosOnSubmit) {
         await navigator.pushNamed(AppRoutes.todos);
       }
@@ -183,11 +193,20 @@ class _CreateTodoSheetState extends State<CreateTodoSheet> {
                 children: [
                   TextButton.icon(
                     onPressed: () {
+                      final navigator = Navigator.of(widget.parentContext);
                       Navigator.of(context).pop();
-                      Navigator.of(widget.parentContext).pushNamed(
-                        AppRoutes.todoDetail,
-                        arguments: const TodoDetailRouteArgs(isCreate: true),
-                      );
+                      navigator
+                          .pushNamed(
+                            AppRoutes.todoDetail,
+                            arguments: const TodoDetailRouteArgs(
+                              isCreate: true,
+                            ),
+                          )
+                          .then((changed) {
+                            if (changed == true) {
+                              widget.onTodosChanged?.call();
+                            }
+                          });
                     },
                     icon: const Icon(Icons.edit_note_outlined),
                     label: const Text('手动创建待办'),

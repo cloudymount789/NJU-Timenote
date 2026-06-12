@@ -13,29 +13,40 @@ class LocalTodoSource {
   final AppClock clock;
   final List<TodoItem> _items;
   final List<String> _manualOrder = <String>[];
-  bool _usesManualOrder = false;
+  final Map<String, _RepeatCompletion> _repeatCompletions = {};
+  _TodoSortMode _sortMode = _TodoSortMode.defaultOrder;
   int _counter = 0;
 
   Future<List<TodoItem>> getTodos([
     TodoFilter filter = const TodoFilter(),
   ]) async {
-    _autoCompleteExpiredDurations();
-    final todos = _items.where(filter.matches).toList()..sort(_compareTodos);
+    final reference = filter.date ?? clock.now();
+    _refreshCompletionState(reference);
+    final todos = _items
+        .map((item) => _projectForReference(item, reference))
+        .where(filter.matches)
+        .toList()
+      ..sort(_compareTodos);
     return List.unmodifiable(todos);
   }
 
   Future<TodoItem?> getTodoById(String todoId) async {
-    _autoCompleteExpiredDurations();
-    return _items.where((item) => item.id == todoId).firstOrNull;
+    final now = clock.now();
+    _refreshCompletionState(now);
+    final item = _items.where((item) => item.id == todoId).firstOrNull;
+    return item == null ? null : _projectForReference(item, now);
   }
 
   Future<List<TodoItem>> searchTodos(String query) async {
-    _autoCompleteExpiredDurations();
+    final now = clock.now();
+    _refreshCompletionState(now);
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) {
       return const [];
     }
-    final todos = _items.where((item) {
+    final todos = _items.map((item) => _projectForReference(item, now)).where((
+      item,
+    ) {
       final haystack = [
         item.title,
         item.content,
@@ -73,7 +84,7 @@ class LocalTodoSource {
       updatedAt: now,
     );
     _items.add(todo);
-    if (_usesManualOrder) {
+    if (_sortMode != _TodoSortMode.defaultOrder) {
       _manualOrder.add(todo.id);
     }
     return todo.withAutoCompletion(now);
@@ -117,18 +128,20 @@ class LocalTodoSource {
           : null,
       tags: nextTags,
       repeatRule: patch.repeatRule.isSet ? patch.repeatRule.value : null,
-      status: patch.status.isSet ? patch.status.value : null,
+      status: old.isRecurring
+          ? TodoStatus.open
+          : patch.status.isSet
+          ? patch.status.value
+          : null,
       updatedAt: now,
     );
     _validateItem(updated);
-    final result = updated.withAutoCompletion(now);
+    final result = updated.isRecurring ? updated : updated.withAutoCompletion(now);
     _items[index] = result;
-    if (old.status != TodoStatus.done &&
-        result.status == TodoStatus.done &&
-        result.repeatRule != RepeatRule.once) {
-      await _createNextRepeat(result, now);
+    if (result.isRecurring && patch.status.isSet) {
+      _setRepeatCompletion(result, now, patch.status.value == TodoStatus.done);
     }
-    return result;
+    return _projectForReference(result, now);
   }
 
   Future<void> deleteTodo(String todoId) async {
@@ -144,6 +157,12 @@ class LocalTodoSource {
     if (item.kind == TodoKind.duration) {
       throw StateError('持续时间待办不可提前手动完成');
     }
+    if (item.isRecurring) {
+      final template = _items[_indexOf(todoId)];
+      final now = clock.now();
+      _setRepeatCompletion(template, now, true);
+      return _projectForReference(template, now);
+    }
     return updateTodo(
       todoId,
       const TodoPatch(status: PatchField.value(TodoStatus.done)),
@@ -157,6 +176,12 @@ class LocalTodoSource {
     }
     if (item.kind == TodoKind.duration) {
       throw StateError('持续时间待办暂不支持手动取消完成');
+    }
+    if (item.isRecurring) {
+      final template = _items[_indexOf(todoId)];
+      final now = clock.now();
+      _setRepeatCompletion(template, now, false);
+      return _projectForReference(template, now);
     }
     return updateTodo(
       todoId,
@@ -177,6 +202,8 @@ class LocalTodoSource {
   Future<void> batchDelete(List<String> todoIds) async {
     final ids = todoIds.toSet();
     _items.removeWhere((item) => ids.contains(item.id));
+    _manualOrder.removeWhere(ids.contains);
+    _repeatCompletions.removeWhere((key, _) => ids.contains(key.split('|').first));
   }
 
   Future<List<TodoItem>> batchComplete(List<String> todoIds) async {
@@ -192,7 +219,7 @@ class LocalTodoSource {
   }
 
   Future<void> reorderTodos(List<String> orderedTodoIds) async {
-    _usesManualOrder = true;
+    _sortMode = _TodoSortMode.manual;
     final visible = orderedTodoIds.toSet();
     _manualOrder
       ..removeWhere(visible.contains)
@@ -200,16 +227,16 @@ class LocalTodoSource {
   }
 
   Future<void> smartSortTodos() async {
-    _autoCompleteExpiredDurations();
+    _refreshCompletionState(clock.now());
     final sorted = [..._items]..sort(compareTodosByPriority);
-    _usesManualOrder = true;
+    _sortMode = _TodoSortMode.smart;
     _manualOrder
       ..clear()
       ..addAll(sorted.map((todo) => todo.id));
   }
 
   int _compareTodos(TodoItem a, TodoItem b) {
-    if (!_usesManualOrder || _manualOrder.isEmpty) {
+    if (_sortMode == _TodoSortMode.defaultOrder || _manualOrder.isEmpty) {
       return compareTodos(a, b);
     }
     final aIndex = _manualOrder.indexOf(a.id);
@@ -226,39 +253,89 @@ class LocalTodoSource {
     return compareTodos(a, b);
   }
 
-  Future<void> _createNextRepeat(TodoItem completed, DateTime now) async {
-    final delta = switch (completed.repeatRule) {
-      RepeatRule.daily => const Duration(days: 1),
-      RepeatRule.weekly => const Duration(days: 7),
-      RepeatRule.biweekly => const Duration(days: 14),
-      RepeatRule.once => Duration.zero,
-    };
-    if (delta == Duration.zero) {
-      return;
-    }
-    final next = completed.copyWith(
-      id: 'todo-${now.microsecondsSinceEpoch}-${++_counter}',
-      startAt: PatchField.value(completed.startAt?.add(delta)),
-      endAt: PatchField.value(completed.endAt?.add(delta)),
-      deadlineAt: PatchField.value(completed.deadlineAt?.add(delta)),
-      status: TodoStatus.open,
-      createdAt: now,
-      updatedAt: now,
+  void _refreshCompletionState(DateTime reference) {
+    final now = clock.now();
+    _repeatCompletions.removeWhere(
+      (_, completion) => completion.completedAt.isBefore(
+        now.subtract(const Duration(days: 7)),
+      ),
     );
-    _items.add(next);
-    final currentIndex = _manualOrder.indexOf(completed.id);
-    if (_usesManualOrder) {
-      _manualOrder.insert(
-        currentIndex == -1 ? _manualOrder.length : currentIndex + 1,
-        next.id,
-      );
+    for (var index = 0; index < _items.length; index += 1) {
+      final item = _items[index];
+      if (item.isRecurring) {
+        final projected = _projectForReference(item, reference);
+        if (projected.kind == TodoKind.duration &&
+            projected.endAt != null &&
+            !projected.endAt!.isAfter(now)) {
+          _setRepeatCompletion(item, reference, true);
+        }
+      } else {
+        _items[index] = item.withAutoCompletion(now);
+      }
     }
   }
 
-  void _autoCompleteExpiredDurations() {
-    final now = clock.now();
-    for (var index = 0; index < _items.length; index += 1) {
-      _items[index] = _items[index].withAutoCompletion(now);
+  TodoItem _projectForReference(TodoItem item, DateTime reference) {
+    if (!item.isRecurring) {
+      return item;
+    }
+    final occurrenceDate = _occurrenceDate(item, reference);
+    final projected = item.copyWith(
+      startAt: PatchField.value(
+        item.kind == TodoKind.duration
+            ? _withDate(occurrenceDate, item.startAt)
+            : null,
+      ),
+      endAt: PatchField.value(
+        item.kind == TodoKind.duration
+            ? _withDate(occurrenceDate, item.endAt)
+            : null,
+      ),
+      deadlineAt: PatchField.value(
+        item.kind == TodoKind.deadline
+            ? _withDate(occurrenceDate, item.deadlineAt)
+            : null,
+      ),
+      status: _isRepeatCompleted(item, occurrenceDate)
+          ? TodoStatus.done
+          : TodoStatus.open,
+    );
+    return projected;
+  }
+
+  DateTime _occurrenceDate(TodoItem item, DateTime reference) {
+    final timeSource = item.deadlineAt ?? item.startAt ?? item.createdAt;
+    return switch (item.repeatRule) {
+      RepeatRule.once => DateTime(reference.year, reference.month, reference.day),
+      RepeatRule.daily => DateTime(reference.year, reference.month, reference.day),
+      RepeatRule.weekly => _startOfWeek(reference).add(
+        Duration(days: timeSource.weekday - 1),
+      ),
+      RepeatRule.biweekly => _biweeklyCycleStart(timeSource, reference).add(
+        Duration(days: timeSource.weekday - 1),
+      ),
+    };
+  }
+
+  DateTime _biweeklyCycleStart(DateTime anchor, DateTime reference) {
+    final anchorWeek = _startOfWeek(anchor);
+    final referenceWeek = _startOfWeek(reference);
+    final days = referenceWeek.difference(anchorWeek).inDays;
+    final cycles = days < 0 ? 0 : days ~/ 14;
+    return anchorWeek.add(Duration(days: cycles * 14));
+  }
+
+  bool _isRepeatCompleted(TodoItem item, DateTime occurrenceDate) {
+    return _repeatCompletions.containsKey(_repeatKey(item.id, occurrenceDate));
+  }
+
+  void _setRepeatCompletion(TodoItem item, DateTime reference, bool done) {
+    final occurrenceDate = _occurrenceDate(item, reference);
+    final key = _repeatKey(item.id, occurrenceDate);
+    if (done) {
+      _repeatCompletions[key] = _RepeatCompletion(clock.now());
+    } else {
+      _repeatCompletions.remove(key);
     }
   }
 
@@ -269,6 +346,41 @@ class LocalTodoSource {
     }
     return index;
   }
+}
+
+enum _TodoSortMode { defaultOrder, manual, smart }
+
+class _RepeatCompletion {
+  const _RepeatCompletion(this.completedAt);
+
+  final DateTime completedAt;
+}
+
+DateTime _startOfWeek(DateTime value) {
+  final date = DateTime(value.year, value.month, value.day);
+  return date.subtract(Duration(days: value.weekday - 1));
+}
+
+DateTime? _withDate(DateTime date, DateTime? timeSource) {
+  if (timeSource == null) {
+    return null;
+  }
+  return DateTime(
+    date.year,
+    date.month,
+    date.day,
+    timeSource.hour,
+    timeSource.minute,
+  );
+}
+
+String _repeatKey(String todoId, DateTime occurrenceDate) {
+  final date = DateTime(
+    occurrenceDate.year,
+    occurrenceDate.month,
+    occurrenceDate.day,
+  );
+  return '$todoId|${date.toIso8601String()}';
 }
 
 int compareTodos(TodoItem a, TodoItem b) {

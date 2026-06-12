@@ -99,6 +99,22 @@ void main() {
     expect(refreshed?.status, TodoStatus.done);
   });
 
+  test('expired deadline todos stay open', () async {
+    final now = DateTime(2026, 6, 12, 12);
+    todos = LocalTodoSource(tags, clock: FixedAppClock(now));
+    final todo = await todos.createTodo(
+      TodoDraft(
+        title: '过期 DDL',
+        kind: TodoKind.deadline,
+        deadlineAt: now.subtract(const Duration(hours: 1)),
+      ),
+    );
+
+    final refreshed = await todos.getTodoById(todo.id);
+
+    expect(refreshed?.status, TodoStatus.open);
+  });
+
   test('batch complete skips duration todos', () async {
     final now = DateTime(2026, 6, 12, 12);
     todos = LocalTodoSource(tags, clock: FixedAppClock(now));
@@ -192,6 +208,49 @@ void main() {
       expect(result.map((todo) => todo.id).take(2), [high.id, low.id]);
     },
   );
+
+  test('manual reorder after smart sort keeps the new manual order', () async {
+    final base = DateTime(2026, 6, 12, 9);
+    final low = await todos.createTodo(
+      TodoDraft(
+        title: '低优先级',
+        kind: TodoKind.deadline,
+        deadlineAt: base,
+        priority: 1,
+      ),
+    );
+    final high = await todos.createTodo(
+      TodoDraft(
+        title: '高优先级',
+        kind: TodoKind.deadline,
+        deadlineAt: base.add(const Duration(days: 3)),
+        priority: 5,
+      ),
+    );
+    final middle = await todos.createTodo(
+      TodoDraft(
+        title: '中优先级',
+        kind: TodoKind.deadline,
+        deadlineAt: base.add(const Duration(days: 1)),
+        priority: 3,
+      ),
+    );
+
+    await todos.smartSortTodos();
+    expect((await todos.getTodos()).map((todo) => todo.id), [
+      high.id,
+      middle.id,
+      low.id,
+    ]);
+
+    await todos.reorderTodos([low.id, high.id, middle.id]);
+
+    expect((await todos.getTodos()).map((todo) => todo.id), [
+      low.id,
+      high.id,
+      middle.id,
+    ]);
+  });
 
   test('biweekly repeat creates next instance when completed', () async {
     final fixedNow = DateTime(2026, 6, 12, 9, 41);
