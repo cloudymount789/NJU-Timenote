@@ -11,6 +11,7 @@ import '../../core/widgets/app_icon_button.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../core/widgets/state_views.dart';
 import '../../data/models/course.dart';
+import '../../data/models/settings.dart';
 import '../../data/sources/local/local_course_source.dart';
 
 class SchedulePage extends StatefulWidget {
@@ -22,7 +23,8 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   int _currentWeek = 1;
-  late Future<List<Course>> _coursesFuture;
+  late Future<_ScheduleLoad> _scheduleFuture;
+  var _didSetInitialWeek = false;
 
   @override
   void didChangeDependencies() {
@@ -31,13 +33,36 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   void _loadCourses() {
-    _coursesFuture = AppScope.repositoriesOf(
-      context,
-    ).courses.getCoursesForWeek(_currentWeek);
+    _scheduleFuture = _loadSchedule();
+  }
+
+  Future<_ScheduleLoad> _loadSchedule() async {
+    final repos = AppScope.repositoriesOf(context);
+    final now = AppScope.clockOf(context).now();
+    final settings = await repos.settings.getSemesterSettings();
+    final semester = settings.activeSemester;
+    if (!_didSetInitialWeek) {
+      final computedWeek = semester.weekForDate(now);
+      final initialWeek = computedWeek.clamp(0, 25).toInt();
+      if (mounted) {
+        setState(() {
+          _currentWeek = initialWeek;
+          _didSetInitialWeek = true;
+        });
+      } else {
+        _currentWeek = initialWeek;
+        _didSetInitialWeek = true;
+      }
+    }
+    final courses = await repos.courses.getCoursesForWeek(
+      _currentWeek,
+      semesterId: semester.id,
+    );
+    return _ScheduleLoad(semester: semester, courses: courses);
   }
 
   void _changeWeek(int delta) {
-    final next = (_currentWeek + delta).clamp(1, 25);
+    final next = (_currentWeek + delta).clamp(0, 25).toInt();
     if (next == _currentWeek) {
       return;
     }
@@ -85,13 +110,13 @@ class _SchedulePageState extends State<SchedulePage> {
             const SizedBox(height: 2),
             _WeekSwitcher(
               currentWeek: _currentWeek,
-              onPrevious: _currentWeek == 1 ? null : () => _changeWeek(-1),
+              onPrevious: _currentWeek == 0 ? null : () => _changeWeek(-1),
               onNext: _currentWeek == 25 ? null : () => _changeWeek(1),
             ),
             const SizedBox(height: 6),
             Expanded(
-              child: FutureBuilder<List<Course>>(
-                future: _coursesFuture,
+              child: FutureBuilder<_ScheduleLoad>(
+                future: _scheduleFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done) {
                     return const AppCard(child: LoadingState());
@@ -99,12 +124,18 @@ class _SchedulePageState extends State<SchedulePage> {
                   if (snapshot.hasError) {
                     return const AppCard(child: ErrorState(message: '无法读取课表。'));
                   }
-                  final courses = snapshot.data ?? const <Course>[];
+                  final data = snapshot.data;
+                  final courses = data?.courses ?? const <Course>[];
+                  final semester = data?.semester ?? defaultSemesterTimetable;
+                  final todayWeek = semester.weekForDate(now);
                   return TimetableView(
                     courses: courses,
                     week: _currentWeek,
                     currentDate: now,
-                    todayWeekday: _currentWeek == 1 ? now.weekday : null,
+                    semesterStartDate: semester.semesterStartDate,
+                    todayWeekday: _currentWeek == todayWeek
+                        ? now.weekday
+                        : null,
                     onDeleteCourse: _deleteCourse,
                     onOpenCourse: (course) async {
                       await Navigator.of(context).pushNamed(
@@ -124,6 +155,13 @@ class _SchedulePageState extends State<SchedulePage> {
       ),
     );
   }
+}
+
+class _ScheduleLoad {
+  const _ScheduleLoad({required this.semester, required this.courses});
+
+  final SemesterTimetable semester;
+  final List<Course> courses;
 }
 
 class _ScheduleHeader extends StatelessWidget {
@@ -229,6 +267,7 @@ class TimetableView extends StatelessWidget {
     required this.onOpenCourse,
     this.week = 1,
     this.currentDate,
+    this.semesterStartDate,
     this.todayWeekday,
     super.key,
   });
@@ -243,6 +282,7 @@ class TimetableView extends StatelessWidget {
   final ValueChanged<Course> onOpenCourse;
   final int week;
   final DateTime? currentDate;
+  final DateTime? semesterStartDate;
   final int? todayWeekday;
 
   @override
@@ -269,6 +309,7 @@ class TimetableView extends StatelessWidget {
                     todayWeekday: todayWeekday,
                     dates: _weekDates(
                       currentDate ?? DateTime(2026, 6, 12),
+                      semesterStartDate,
                       week,
                     ),
                   ),
@@ -366,12 +407,13 @@ class TimetableView extends StatelessWidget {
     }).toList();
   }
 
-  List<DateTime> _weekDates(DateTime now, int week) {
+  List<DateTime> _weekDates(DateTime now, DateTime? semesterStart, int week) {
+    final anchor = semesterStart ?? now;
     final monday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
+      anchor.year,
+      anchor.month,
+      anchor.day,
+    ).subtract(Duration(days: anchor.weekday - 1));
     final targetMonday = monday.add(Duration(days: (week - 1) * 7));
     return [
       for (var index = 0; index < 7; index += 1)

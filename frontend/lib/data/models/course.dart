@@ -15,6 +15,7 @@ class Course {
     required this.weekRule,
     required this.startWeek,
     required this.endWeek,
+    this.semesterId = 'semester-2026-03-02',
     required this.colorKey,
     required this.source,
     required this.createdAt,
@@ -32,6 +33,7 @@ class Course {
   final WeekRule weekRule;
   final int startWeek;
   final int endWeek;
+  final String semesterId;
   final String colorKey;
   final CourseSource source;
   final DateTime createdAt;
@@ -50,6 +52,7 @@ class Course {
       'weekRule': weekRule.name,
       'startWeek': startWeek,
       'endWeek': endWeek,
+      'semesterId': semesterId,
       'colorKey': colorKey,
       'source': source.name,
       'createdAt': createdAt.toIso8601String(),
@@ -70,6 +73,7 @@ class Course {
       weekRule: WeekRule.values.byName(json['weekRule'] as String),
       startWeek: json['startWeek'] as int,
       endWeek: json['endWeek'] as int,
+      semesterId: json['semesterId'] as String? ?? 'semester-2026-03-02',
       colorKey: json['colorKey'] as String,
       source: CourseSource.values.byName(json['source'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -89,6 +93,7 @@ class Course {
     WeekRule? weekRule,
     int? startWeek,
     int? endWeek,
+    String? semesterId,
     String? colorKey,
     CourseSource? source,
     DateTime? createdAt,
@@ -106,6 +111,7 @@ class Course {
       weekRule: weekRule ?? this.weekRule,
       startWeek: startWeek ?? this.startWeek,
       endWeek: endWeek ?? this.endWeek,
+      semesterId: semesterId ?? this.semesterId,
       colorKey: colorKey ?? this.colorKey,
       source: source ?? this.source,
       createdAt: createdAt ?? this.createdAt,
@@ -137,6 +143,7 @@ class CourseDraft {
     required this.weekRule,
     required this.startWeek,
     required this.endWeek,
+    this.semesterId,
     this.source = CourseSource.manual,
   });
 
@@ -150,5 +157,6 @@ class CourseDraft {
   final WeekRule weekRule;
   final int startWeek;
   final int endWeek;
+  final String? semesterId;
   final CourseSource source;
 }

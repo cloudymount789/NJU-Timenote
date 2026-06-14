@@ -41,15 +41,20 @@ class RepositoryFactory {
   }) {
     final tagSource = LocalTagSource(store: store);
     final todoSource = LocalTodoSource(tagSource, clock: clock, store: store);
+    final settingsSource = LocalSettingsSource(clock: clock, store: store);
     final changes = DataRefreshNotifier();
     return AppRepositories(
       courses: LocalCourseRepository(
-        LocalCourseSource(clock: clock, store: store),
+        LocalCourseSource(
+          clock: clock,
+          store: store,
+          settingsSource: settingsSource,
+        ),
         changes,
       ),
       todos: LocalTodoRepository(todoSource, changes),
       tags: LocalTagRepository(tagSource),
-      settings: LocalSettingsRepository(LocalSettingsSource(store: store)),
+      settings: LocalSettingsRepository(settingsSource, changes),
       recommendations: LocalRecommendationRepository(
         LocalRecommendationSource(todoSource),
       ),
@@ -70,8 +75,8 @@ class LocalCourseRepository implements CourseRepository {
   final DataRefreshNotifier _changes;
 
   @override
-  Future<List<Course>> getCoursesForWeek(int week) {
-    return _source.getCoursesForWeek(week);
+  Future<List<Course>> getCoursesForWeek(int week, {String? semesterId}) {
+    return _source.getCoursesForWeek(week, semesterId: semesterId);
   }
 
   @override
@@ -240,13 +245,39 @@ class LocalQuickTodoRepository implements QuickTodoRepository {
 }
 
 class LocalSettingsRepository implements SettingsRepository {
-  const LocalSettingsRepository(this._source);
+  const LocalSettingsRepository(this._source, this._changes);
 
   final LocalSettingsSource _source;
+  final DataRefreshNotifier _changes;
 
   @override
   Future<SemesterSettings> getSemesterSettings() {
     return _source.getSemesterSettings();
+  }
+
+  @override
+  Future<SemesterTimetable> addSemesterTimetable({
+    DateTime? startDate,
+    int weekCount = 16,
+  }) async {
+    final semester = await _source.addSemesterTimetable(
+      startDate: startDate,
+      weekCount: weekCount,
+    );
+    _changes.markChanged();
+    return semester;
+  }
+
+  @override
+  Future<void> updateSemesterTimetable(SemesterTimetable semester) async {
+    await _source.updateSemesterTimetable(semester);
+    _changes.markChanged();
+  }
+
+  @override
+  Future<void> setLastSelectedSemesterId(String semesterId) async {
+    await _source.setLastSelectedSemesterId(semesterId);
+    _changes.markChanged();
   }
 }
 

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nju_timenote/core/time/app_clock.dart';
 import 'package:nju_timenote/data/models/course.dart';
+import 'package:nju_timenote/data/models/settings.dart';
 import 'package:nju_timenote/data/sources/local/local_course_source.dart';
+import 'package:nju_timenote/data/sources/local/local_settings_source.dart';
 import 'package:nju_timenote/features/schedule/schedule_page.dart';
 
 void main() {
@@ -29,7 +31,22 @@ void main() {
     final json = course.toJson();
     expect(json['weekRule'], 'all');
     expect(json['source'], 'manual');
+    expect(json['semesterId'], 'semester-2026-03-02');
     expect(Course.fromJson(json).name, '课程');
+  });
+
+  test('default semester starts on 2026-03-02 and lasts 16 weeks', () async {
+    final settings = await LocalSettingsSource().getSemesterSettings();
+
+    expect(settings.semesters, hasLength(1));
+    expect(settings.activeSemester.semesterStartDate, DateTime(2026, 3, 2));
+    expect(settings.activeSemester.weekCount, 16);
+  });
+
+  test('semester calculates current week from start date', () {
+    expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 2)), 1);
+    expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 8)), 1);
+    expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 9)), 2);
   });
 
   test('local source filters by week rule and keeps stable colors', () async {
@@ -164,6 +181,29 @@ void main() {
     );
 
     expect((await source.getNextCourse())?.name, '上午课');
+  });
+
+  test('course source hides courses outside semester week count', () async {
+    final settingsSource = LocalSettingsSource();
+    final source = LocalCourseSource(settingsSource: settingsSource);
+
+    await source.createCourse(
+      const CourseDraft(
+        name: '超长课程',
+        teacher: '',
+        location: 'A',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 25,
+      ),
+    );
+
+    expect(await source.getCoursesForWeek(16), hasLength(1));
+    expect(await source.getCoursesForWeek(17), isEmpty);
   });
 
   testWidgets('timetable renders spanning and conflicting courses', (

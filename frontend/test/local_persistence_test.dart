@@ -56,6 +56,34 @@ void main() {
     },
   );
 
+  test('semester settings survive repository recreation after edits', () async {
+    final clock = MutableAppClock(DateTime(2026, 6, 12, 9));
+    var repos = await RepositoryFactory.persistent(clock);
+    var settings = await repos.settings.getSemesterSettings();
+    final defaultSemester = settings.activeSemester;
+
+    await repos.settings.updateSemesterTimetable(
+      defaultSemester.copyWith(
+        semesterStartDate: DateTime(2026, 2, 23),
+        weekCount: 18,
+      ),
+    );
+    final added = await repos.settings.addSemesterTimetable(
+      startDate: DateTime(2026, 9, 7),
+      weekCount: 20,
+    );
+    await repos.settings.setLastSelectedSemesterId(added.id);
+
+    repos = await RepositoryFactory.persistent(clock);
+    settings = await repos.settings.getSemesterSettings();
+
+    expect(settings.semesters, hasLength(2));
+    expect(settings.semesters.first.semesterStartDate, DateTime(2026, 2, 23));
+    expect(settings.semesters.first.weekCount, 18);
+    expect(settings.activeSemester.id, added.id);
+    expect(settings.activeSemester.weekCount, 20);
+  });
+
   test(
     'todos tags filters and repeat state survive repository recreation',
     () async {

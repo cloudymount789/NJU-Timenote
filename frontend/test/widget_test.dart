@@ -10,6 +10,7 @@ import 'package:nju_timenote/data/repositories/app_repositories.dart';
 import 'package:nju_timenote/data/repositories/repository_factory.dart';
 import 'package:nju_timenote/features/home/home_page.dart';
 import 'package:nju_timenote/features/recommendation/next_thing_page.dart';
+import 'package:nju_timenote/features/schedule/schedule_page.dart';
 import 'package:nju_timenote/features/todo/todo_detail_page.dart';
 import 'package:nju_timenote/features/todo/todo_list_page.dart';
 
@@ -164,6 +165,37 @@ void main() {
     expect(find.text('数据结构'), findsOneWidget);
     expect(find.text('预习课程'), findsOneWidget);
     expect(find.text('提交实验报告'), findsOneWidget);
+  });
+
+  testWidgets('schedule opens on computed semester week', (tester) async {
+    final fixedNow = DateTime(2026, 3, 10, 9);
+    final repositories = RepositoryFactory.local(FixedAppClock(fixedNow));
+    await repositories.courses.createCourse(
+      const CourseDraft(
+        name: '第二周课程',
+        teacher: '',
+        location: '仙 I-101',
+        note: '',
+        dayOfWeek: 2,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 2,
+        endWeek: 2,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        clock: FixedAppClock(fixedNow),
+        home: const SchedulePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('第 2 周'), findsOneWidget);
+    expect(find.text('第二周课程'), findsOneWidget);
   });
 
   testWidgets('next thing add button creates todo and shows refreshed state', (

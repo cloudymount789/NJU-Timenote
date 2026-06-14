@@ -1,7 +1,7 @@
 import '../models/course.dart';
 
 abstract class CourseRepository {
-  Future<List<Course>> getCoursesForWeek(int week);
+  Future<List<Course>> getCoursesForWeek(int week, {String? semesterId});
   Future<Course?> getCourseById(String courseId);
   Future<Course?> getNextCourse();
   Future<Course> createCourse(CourseDraft draft);

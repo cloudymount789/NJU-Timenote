@@ -1,19 +1,35 @@
 import '../../../core/time/app_clock.dart';
 import '../../models/course.dart';
+import '../../models/settings.dart';
 import 'local_json_store.dart';
+import 'local_settings_source.dart';
 
 class LocalCourseSource {
-  LocalCourseSource({this.clock = const AppClock(), this.store}) {
+  LocalCourseSource({
+    this.clock = const AppClock(),
+    this.store,
+    this.settingsSource,
+  }) {
     _restore();
   }
 
   final AppClock clock;
   final LocalJsonStore? store;
+  final LocalSettingsSource? settingsSource;
   final List<Course> _courses = <Course>[];
   final Map<String, String> _colorByName = <String, String>{};
 
-  Future<List<Course>> getCoursesForWeek(int week) async {
-    return _courses.where((course) => course.occursInWeek(week)).toList()
+  Future<List<Course>> getCoursesForWeek(int week, {String? semesterId}) async {
+    final semester = await _semesterForQuery(semesterId);
+    if (semester == null || !semester.containsWeek(week)) {
+      return const [];
+    }
+    return _courses
+        .where(
+          (course) =>
+              course.semesterId == semester.id && course.occursInWeek(week),
+        )
+        .toList()
       ..sort((a, b) {
         final dayCompare = a.dayOfWeek.compareTo(b.dayOfWeek);
         if (dayCompare != 0) {
@@ -29,9 +45,21 @@ class LocalCourseSource {
 
   Future<Course?> getNextCourse() async {
     final now = clock.now();
+    final semester = await _currentSemester(now);
+    if (semester == null) {
+      return null;
+    }
+    final currentWeek = semester.weekForDate(now);
+    if (!semester.containsWeek(currentWeek)) {
+      return null;
+    }
     final upcoming =
         _courses
-            .where((course) => course.occursInWeek(1))
+            .where(
+              (course) =>
+                  course.semesterId == semester.id &&
+                  course.occursInWeek(currentWeek),
+            )
             .map(
               (course) =>
                   (course: course, startsAt: _nextStartFor(course, now)),
@@ -43,6 +71,7 @@ class LocalCourseSource {
 
   Future<Course> createCourse(CourseDraft draft) async {
     final now = clock.now();
+    final semesterId = await _semesterIdForDraft(draft);
     final course = Course(
       id: 'course-${now.microsecondsSinceEpoch}',
       name: draft.name.trim(),
@@ -55,6 +84,7 @@ class LocalCourseSource {
       weekRule: draft.weekRule,
       startWeek: draft.startWeek,
       endWeek: draft.endWeek,
+      semesterId: semesterId,
       colorKey: colorKeyForCourseName(draft.name),
       source: draft.source,
       createdAt: now,
@@ -71,6 +101,7 @@ class LocalCourseSource {
       throw StateError('课程不存在');
     }
     final old = _courses[index];
+    final semesterId = await _semesterIdForDraft(draft);
     final updated = old.copyWith(
       name: draft.name.trim(),
       teacher: draft.teacher.trim(),
@@ -82,6 +113,7 @@ class LocalCourseSource {
       weekRule: draft.weekRule,
       startWeek: draft.startWeek,
       endWeek: draft.endWeek,
+      semesterId: semesterId,
       colorKey: colorKeyForCourseName(draft.name),
       source: draft.source,
       updatedAt: clock.now(),
@@ -137,6 +169,40 @@ class LocalCourseSource {
       'courses': _courses.map((course) => course.toJson()).toList(),
       'colorByName': _colorByName,
     });
+  }
+
+  Future<String> _semesterIdForDraft(CourseDraft draft) async {
+    if (draft.semesterId != null) {
+      return draft.semesterId!;
+    }
+    final settings = await settingsSource?.getSemesterSettings();
+    return settings?.activeSemester.id ?? defaultSemesterTimetable.id;
+  }
+
+  Future<SemesterTimetable?> _semesterForQuery(String? semesterId) async {
+    final settings = await settingsSource?.getSemesterSettings();
+    if (settings == null) {
+      return defaultSemesterTimetable;
+    }
+    if (semesterId != null) {
+      return settings.semesterById(semesterId);
+    }
+    return settings.activeSemester;
+  }
+
+  Future<SemesterTimetable?> _currentSemester(DateTime now) async {
+    final settings = await settingsSource?.getSemesterSettings();
+    final semesters = settings?.semesters ?? [defaultSemesterTimetable];
+    if (semesters.isEmpty) {
+      return null;
+    }
+    final inRange =
+        semesters.where((semester) {
+            final week = semester.weekForDate(now);
+            return semester.containsWeek(week);
+          }).toList()
+          ..sort((a, b) => b.semesterStartDate.compareTo(a.semesterStartDate));
+    return inRange.firstOrNull ?? settings?.activeSemester ?? semesters.last;
   }
 }
 

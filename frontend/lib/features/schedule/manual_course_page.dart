@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app.dart';
+import '../../app/router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_dialogs.dart';
@@ -8,6 +9,7 @@ import '../../core/widgets/app_feedback.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 import '../../data/models/course.dart';
+import '../../data/models/settings.dart';
 
 class ManualCoursePage extends StatefulWidget {
   const ManualCoursePage({this.courseId, super.key});
@@ -30,6 +32,8 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
   int _dayOfWeek = 1;
   int _startPeriod = 1;
   int _endPeriod = 1;
+  List<SemesterTimetable> _semesters = const [];
+  String? _semesterId;
   bool _saving = false;
   var _loading = true;
   var _didLoad = false;
@@ -48,14 +52,22 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
   }
 
   Future<void> _loadCourse() async {
+    final repos = AppScope.repositoriesOf(context);
+    final settings = await repos.settings.getSemesterSettings();
+    if (!mounted) {
+      return;
+    }
+    _semesters = settings.semesters;
+    _semesterId = settings.activeSemester.id;
     final id = widget.courseId;
     if (id == null) {
       setState(() => _loading = false);
       return;
     }
-    final course = await AppScope.repositoriesOf(
-      context,
-    ).courses.getCourseById(id);
+    final course = await repos.courses.getCourseById(id);
+    if (!mounted) {
+      return;
+    }
     if (course == null) {
       setState(() {
         _loading = false;
@@ -74,6 +86,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       _dayOfWeek = course.dayOfWeek;
       _startPeriod = course.startPeriod;
       _endPeriod = course.endPeriod;
+      _semesterId = course.semesterId;
       _loading = false;
     });
   }
@@ -99,6 +112,8 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       message = '结束周不能早于起始周。';
     } else if (_endPeriod < _startPeriod) {
       message = '结束节不能早于起始节。';
+    } else if (_semesterId == null || _semesters.isEmpty) {
+      message = '请先在设置中添加学期课表。';
     }
     if (message != null) {
       showAppSnackBar(context, message);
@@ -117,8 +132,11 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       weekRule: _weekRule,
       startWeek: _startWeek,
       endWeek: _endWeek,
+      semesterId: _semesterId,
     );
-    final repo = AppScope.repositoriesOf(context).courses;
+    final repos = AppScope.repositoriesOf(context);
+    await repos.settings.setLastSelectedSemesterId(_semesterId!);
+    final repo = repos.courses;
     if (_isEdit) {
       await repo.updateCourse(widget.courseId!, draft);
     } else {
@@ -285,6 +303,76 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
     );
   }
 
+  Future<void> _openSemesterPicker() async {
+    if (_semesters.isEmpty) {
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text('还没有学期课表'),
+            content: const Text('请先到设置中添加学期课表，再添加课程。'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('去设置'),
+              ),
+            ],
+          );
+        },
+      );
+      if (go == true && mounted) {
+        await Navigator.of(context).pushNamed(AppRoutes.settings);
+        if (mounted) {
+          setState(() => _loading = true);
+          await _loadCourse();
+        }
+      }
+      return;
+    }
+
+    var selected = _semesterId ?? _semesters.first.id;
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 35),
+          child: StatefulBuilder(
+            builder: (context, setDialogState) {
+              return PickerShell(
+                title: '添加至学期',
+                onConfirm: () {
+                  setState(() => _semesterId = selected);
+                  Navigator.of(context).pop();
+                },
+                child: DropdownButtonFormField<String>(
+                  initialValue: selected,
+                  decoration: const InputDecoration(labelText: '学期'),
+                  items: [
+                    for (final semester in _semesters)
+                      DropdownMenuItem(
+                        value: semester.id,
+                        child: Text(_semesterText(semester)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => selected = value);
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   String get _weekText {
     final rule = switch (_weekRule) {
       WeekRule.all => '全部',
@@ -296,6 +384,13 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
 
   String get _periodText {
     return '周${_weekdayName(_dayOfWeek)} 第 $_startPeriod-$_endPeriod 节';
+  }
+
+  String get _semesterTextValue {
+    final semester = _semesters
+        .where((item) => item.id == _semesterId)
+        .firstOrNull;
+    return semester == null ? '去设置添加学期' : _semesterText(semester);
   }
 
   String _weekdayName(int day) {
@@ -350,6 +445,11 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                             const SizedBox(height: 18),
                             const _SectionLabel('时间与节次'),
                             _PickerRow(
+                              label: '添加至',
+                              value: _semesterTextValue,
+                              onTap: _openSemesterPicker,
+                            ),
+                            _PickerRow(
                               label: '持续周次',
                               value: _weekText,
                               onTap: _openWeekPicker,
@@ -378,6 +478,10 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       ),
     );
   }
+}
+
+String _semesterText(SemesterTimetable semester) {
+  return '${semester.name} · ${semester.weekCount}周';
 }
 
 class _SectionLabel extends StatelessWidget {

@@ -31,6 +31,7 @@
   "weekRule": "all",
   "startWeek": 1,
   "endWeek": 16,
+  "semesterId": "semester-2026-spring",
   "colorKey": "pink",
   "source": "manual",
   "createdAt": "2026-04-09T09:41:00+08:00",
@@ -43,6 +44,7 @@
 | `dayOfWeek` | 1-7 |
 | `startPeriod` / `endPeriod` | 1-12, startPeriod ≤ endPeriod |
 | `startWeek` / `endWeek` | 1-25, startWeek ≤ endWeek |
+| `semesterId` | 所属学期课表 ID；课程只在该学期的有效持续周数内显示 |
 | `weekRule` | `"all"` / `"odd"` / `"even"` |
 | `source` | `"manual"` / `"screenshot"` / `"sample"` |
 | `colorKey` | 按课程名稳定生成；课程名首次出现时可随机分配，之后同课程名 = 同颜色 |
@@ -163,13 +165,25 @@
 
 ```json
 {
-  "semesterStartDate": "2026-09-01",
+  "semesterStartDate": "2026-03-02",
+  "semesters": [
+    {
+      "id": "semester-2026-spring",
+      "name": "2026 春季学期",
+      "semesterStartDate": "2026-03-02",
+      "weekCount": 16,
+      "createdAt": "2026-03-02T00:00:00+08:00"
+    }
+  ],
+  "lastSelectedSemesterId": "semester-2026-spring",
   "periods": [
     { "period": 1, "start": "08:00", "end": "08:50" },
     { "period": 2, "start": "09:00", "end": "09:50" }
   ]
 }
 ```
+
+`semesters` 是多个学期课表配置；首次使用默认包含一条 `semesterStartDate = 2026-03-02`、`weekCount = 16` 的学期。`semesterStartDate` 顶层字段保留为兼容字段，表示当前/活跃学期的开学日。`weekCount` 范围 1-25。开学日期所在周记为第 1 周。
 
 `period` 范围 1-12，`start`/`end` 格式 `HH:mm`。
 
@@ -239,9 +253,9 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `GET` | `/api/v1/settings/semester` | 获取学期开学日 |
+| `GET` | `/api/v1/settings/semester` | 获取学期课表设置 |
 | `GET` | `/api/v1/settings/periods` | 获取节次时间 |
-| `PUT` | `/api/v1/settings/semester` | 修改学期（待实现） |
+| `PUT` | `/api/v1/settings/semester` | 修改学期课表设置（待实现） |
 | `PUT` | `/api/v1/settings/periods` | 修改节次（待实现） |
 | `POST` | `/api/v1/settings/backup` | 创建备份 |
 | `POST` | `/api/v1/exports` | 创建分享导出 |
@@ -290,10 +304,12 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 
 ### 4.7 课程周次筛选
 
-`GET /courses?week=N` 只返回 `startWeek ≤ N ≤ endWeek` 且 `weekRule` 匹配的课程：
+`GET /courses?week=N` 只返回所属学期内 `1 ≤ N ≤ weekCount`、课程自身 `startWeek ≤ N ≤ endWeek` 且 `weekRule` 匹配的课程：
 - `all`：所有周
 - `odd`：N 为奇数
 - `even`：N 为偶数
+
+当前教学周按当前日期与学期开学日期计算：开学日所在周为第 1 周，每 7 天递增 1 周。早于开学日或晚于学期持续周数的周仍可在前端切换查看，但不返回/不显示该学期课程。
 
 ### 4.8 重复待办
 
