@@ -5,6 +5,7 @@ abstract class SettingsRepository {
   Future<SemesterTimetable> addSemesterTimetable({
     DateTime? startDate,
     int weekCount = 16,
+    String owner = '我',
     String? schoolYear,
     SemesterTermType? termType,
   });

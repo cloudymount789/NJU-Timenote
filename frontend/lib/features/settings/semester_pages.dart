@@ -159,7 +159,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
   var _saving = false;
   String? _error;
   String? _id;
-  String _name = '2025-2026学年第二学期';
+  String _owner = '我';
   String _schoolYear = '2025-2026';
   SemesterTermType _termType = SemesterTermType.spring;
   DateTime _startDate = DateTime(2026, 3, 2);
@@ -191,7 +191,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
         return;
       }
       _id = semester.id;
-      _name = semester.name;
+      _owner = semester.owner;
       _schoolYear = semester.schoolYear;
       _termType = semester.termType;
       _startDate = semester.semesterStartDate;
@@ -202,9 +202,9 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
       final seedDate = _suggestStartDate(settings);
       final now = AppScope.clockOf(context).now();
       _id = 'semester-${now.microsecondsSinceEpoch}';
+      _owner = '我';
       _schoolYear = _schoolYearForDate(seedDate);
       _termType = _termTypeForDate(seedDate);
-      _name = suggestedSemesterName(_schoolYear, _termType);
       _startDate = seedDate;
       _createdAt = now;
       _updatedAt = now;
@@ -214,41 +214,23 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
 
   DateTime _updatedAt = DateTime(2026, 3, 2);
 
-  Future<void> _editName() async {
-    final controller = TextEditingController(text: _name);
+  String get _generatedName =>
+      generatedSemesterName(_owner, _schoolYear, _termType);
+
+  Future<void> _editOwner() async {
     final value = await showDialog<String>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('学期名称'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: '请输入学期名称'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('确定'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _OwnerDialog(initialOwner: _owner),
     );
-    controller.dispose();
     if (value == null || !mounted) {
       return;
     }
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
-      showAppSnackBar(context, '请填写学期名称。');
+      showAppSnackBar(context, '请填写课表归属。');
       return;
     }
-    setState(() => _name = trimmed);
+    setState(() => _owner = trimmed);
   }
 
   Future<void> _pickSchoolYear() async {
@@ -263,13 +245,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
       current: _schoolYear,
     );
     if (selected != null && mounted) {
-      setState(() {
-        final oldSuggestion = suggestedSemesterName(_schoolYear, _termType);
-        _schoolYear = selected;
-        if (_name == oldSuggestion) {
-          _name = suggestedSemesterName(_schoolYear, _termType);
-        }
-      });
+      setState(() => _schoolYear = selected);
     }
   }
 
@@ -296,13 +272,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
       },
     );
     if (selected != null && mounted) {
-      setState(() {
-        final oldSuggestion = suggestedSemesterName(_schoolYear, _termType);
-        _termType = selected;
-        if (_name == oldSuggestion) {
-          _name = suggestedSemesterName(_schoolYear, _termType);
-        }
-      });
+      setState(() => _termType = selected);
     }
   }
 
@@ -349,38 +319,15 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
   }
 
   Future<void> _editWeekCount() async {
-    final controller = TextEditingController(text: '$_weekCount');
     final value = await showDialog<int>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('学期持续周数'),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: '请输入 1-25 的整数'),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(context).pop(int.tryParse(controller.text)),
-              child: const Text('确定'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _WeekCountDialog(initialWeekCount: _weekCount),
     );
-    controller.dispose();
     if (value == null || !mounted) {
       return;
     }
-    if (value < 1 || value > 25) {
-      showAppSnackBar(context, '学期持续周数需在 1-25 周之间。');
+    if (value < 1 || value > 30) {
+      showAppSnackBar(context, '学期持续周数需在 1-30 周之间。');
       return;
     }
     setState(() => _weekCount = value);
@@ -390,7 +337,8 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
     setState(() => _saving = true);
     final semester = SemesterTimetable(
       id: _id!,
-      name: _name,
+      name: _generatedName,
+      owner: _owner,
       schoolYear: _schoolYear,
       termType: _termType,
       semesterStartDate: _startDate,
@@ -444,10 +392,12 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                       child: Column(
                         children: [
                           _DetailRow(
-                            title: '学期名称',
-                            value: _name,
-                            onTap: _editName,
+                            title: '课表归属',
+                            value: _owner,
+                            onTap: _editOwner,
                           ),
+                          const _Divider(),
+                          _InfoRow(title: '课表名称', value: _generatedName),
                           const _Divider(),
                           _DetailRow(
                             title: '学年范围',
@@ -462,13 +412,13 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                           ),
                           const _Divider(),
                           _DetailRow(
-                            title: '学期开学日期',
+                            title: '开学日期',
                             value: _formatDate(_startDate),
                             onTap: _pickStartDate,
                           ),
                           const _Divider(),
                           _DetailRow(
-                            title: '学期持续周数',
+                            title: '持续周数',
                             value: '$_weekCount 周',
                             onTap: _editWeekCount,
                           ),
@@ -586,13 +536,172 @@ class _DetailRow extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(value, style: const TextStyle(color: AppColors.muted)),
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(color: AppColors.muted),
+                ),
+              ),
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right, size: 18, color: AppColors.line),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.title, required this.value});
+
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 56,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.ink,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Flexible(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(color: AppColors.muted),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OwnerDialog extends StatefulWidget {
+  const _OwnerDialog({required this.initialOwner});
+
+  final String initialOwner;
+
+  @override
+  State<_OwnerDialog> createState() => _OwnerDialogState();
+}
+
+class _OwnerDialogState extends State<_OwnerDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialOwner,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('课表归属'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 12,
+        decoration: const InputDecoration(
+          hintText: '例如：我、室友、张三',
+          counterText: '',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final owner = _controller.text.trim();
+            if (owner.isEmpty) {
+              showAppSnackBar(context, '请填写课表归属。');
+              return;
+            }
+            Navigator.of(context).pop(owner);
+          },
+          child: const Text('确定'),
+        ),
+      ],
+    );
+  }
+}
+
+class _WeekCountDialog extends StatefulWidget {
+  const _WeekCountDialog({required this.initialWeekCount});
+
+  final int initialWeekCount;
+
+  @override
+  State<_WeekCountDialog> createState() => _WeekCountDialogState();
+}
+
+class _WeekCountDialogState extends State<_WeekCountDialog> {
+  late int _value = widget.initialWeekCount.clamp(1, 30).toInt();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('持续周数'),
+      content: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            tooltip: '减少一周',
+            onPressed: _value <= 1 ? null : () => setState(() => _value -= 1),
+            icon: const Icon(Icons.remove_circle_outline),
+          ),
+          SizedBox(
+            width: 96,
+            child: Text(
+              '$_value 周',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.ink,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: '增加一周',
+            onPressed: _value >= 30 ? null : () => setState(() => _value += 1),
+            icon: const Icon(Icons.add_circle_outline),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_value),
+          child: const Text('确定'),
+        ),
+      ],
     );
   }
 }

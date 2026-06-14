@@ -23,6 +23,7 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   int _currentWeek = 1;
+  int _currentWeekMax = defaultSemesterTimetable.weekCount;
   String? _selectedSemesterId;
   late Future<_ScheduleLoad> _scheduleFuture;
   var _didSetInitialWeek = false;
@@ -51,9 +52,9 @@ class _SchedulePageState extends State<SchedulePage> {
         : settings.semesterById(_selectedSemesterId!) ??
               settings.activeSemester;
     _selectedSemesterId = semester.id;
+    _currentWeekMax = semester.weekCount;
     if (!_didSetInitialWeek) {
-      final computedWeek = semester.weekForDate(now);
-      final initialWeek = computedWeek.clamp(0, 25).toInt();
+      final initialWeek = _boundedWeekForDate(semester, now);
       if (mounted) {
         setState(() {
           _currentWeek = initialWeek;
@@ -64,8 +65,12 @@ class _SchedulePageState extends State<SchedulePage> {
         _didSetInitialWeek = true;
       }
     }
+    final queryWeek = _currentWeek.clamp(1, semester.weekCount).toInt();
+    if (queryWeek != _currentWeek) {
+      _currentWeek = queryWeek;
+    }
     final courses = await repos.courses.getCoursesForWeek(
-      _currentWeek,
+      queryWeek,
       semesterId: semester.id,
     );
     return _ScheduleLoad(
@@ -85,14 +90,15 @@ class _SchedulePageState extends State<SchedulePage> {
     final now = AppScope.clockOf(context).now();
     setState(() {
       _selectedSemesterId = semester.id;
-      _currentWeek = semester.weekForDate(now).clamp(0, 25).toInt();
+      _currentWeekMax = semester.weekCount;
+      _currentWeek = _boundedWeekForDate(semester, now);
       _didSetInitialWeek = true;
       _loadCourses();
     });
   }
 
   void _changeWeek(int delta) {
-    final next = (_currentWeek + delta).clamp(0, 25).toInt();
+    final next = (_currentWeek + delta).clamp(1, _currentWeekMax).toInt();
     if (next == _currentWeek) {
       return;
     }
@@ -180,13 +186,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 }
               },
             ),
-            const SizedBox(height: 2),
-            _WeekSwitcher(
-              currentWeek: _currentWeek,
-              onPrevious: _currentWeek == 0 ? null : () => _changeWeek(-1),
-              onNext: _currentWeek == 25 ? null : () => _changeWeek(1),
-            ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _refreshSchedule,
@@ -213,21 +213,30 @@ class _SchedulePageState extends State<SchedulePage> {
                           final todayWeek = semester.weekForDate(now);
                           return Column(
                             children: [
-                              _SemesterSwitcher(
+                              _ScheduleControls(
                                 semesters:
                                     data?.semesters ??
                                     [defaultSemesterTimetable],
                                 selectedSemester: semester,
-                                onChanged: _changeSemester,
+                                currentWeek: _currentWeek,
+                                onSemesterChanged: _changeSemester,
+                                onPreviousWeek: _currentWeek <= 1
+                                    ? null
+                                    : () => _changeWeek(-1),
+                                onNextWeek: _currentWeek >= semester.weekCount
+                                    ? null
+                                    : () => _changeWeek(1),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               Expanded(
                                 child: TimetableView(
                                   courses: courses,
                                   week: _currentWeek,
                                   currentDate: now,
                                   semesterStartDate: semester.semesterStartDate,
-                                  todayWeekday: _currentWeek == todayWeek
+                                  todayWeekday:
+                                      semester.containsWeek(todayWeek) &&
+                                          _currentWeek == todayWeek
                                       ? now.weekday
                                       : null,
                                   onDeleteCourse: _deleteCourse,
@@ -274,6 +283,10 @@ class _ScheduleLoad {
 
 enum _CourseDeleteScope { once, all }
 
+int _boundedWeekForDate(SemesterTimetable semester, DateTime date) {
+  return semester.weekForDate(date).clamp(1, semester.weekCount).toInt();
+}
+
 class _ScheduleHeader extends StatelessWidget {
   const _ScheduleHeader({required this.onBack, required this.onAdd});
 
@@ -318,6 +331,45 @@ class _ScheduleHeader extends StatelessWidget {
   }
 }
 
+class _ScheduleControls extends StatelessWidget {
+  const _ScheduleControls({
+    required this.semesters,
+    required this.selectedSemester,
+    required this.currentWeek,
+    required this.onSemesterChanged,
+    required this.onPreviousWeek,
+    required this.onNextWeek,
+  });
+
+  final List<SemesterTimetable> semesters;
+  final SemesterTimetable selectedSemester;
+  final int currentWeek;
+  final ValueChanged<SemesterTimetable> onSemesterChanged;
+  final VoidCallback? onPreviousWeek;
+  final VoidCallback? onNextWeek;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _SemesterSwitcher(
+            semesters: semesters,
+            selectedSemester: selectedSemester,
+            onChanged: onSemesterChanged,
+          ),
+        ),
+        const SizedBox(width: 8),
+        _WeekSwitcher(
+          currentWeek: currentWeek,
+          onPrevious: onPreviousWeek,
+          onNext: onNextWeek,
+        ),
+      ],
+    );
+  }
+}
+
 class _WeekSwitcher extends StatelessWidget {
   const _WeekSwitcher({
     required this.currentWeek,
@@ -338,7 +390,7 @@ class _WeekSwitcher extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -346,13 +398,17 @@ class _WeekSwitcher extends StatelessWidget {
                 tooltip: '上一周',
                 onPressed: onPrevious,
                 visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 32,
+                  height: 32,
+                ),
                 icon: const Icon(Icons.chevron_left, size: 24),
               ),
               Text(
                 '第 $currentWeek 周',
                 style: const TextStyle(
                   color: AppColors.muted,
-                  fontSize: 18,
+                  fontSize: 15,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -360,6 +416,10 @@ class _WeekSwitcher extends StatelessWidget {
                 tooltip: '下一周',
                 onPressed: onNext,
                 visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 32,
+                  height: 32,
+                ),
                 icon: const Icon(Icons.chevron_right, size: 24),
               ),
             ],
@@ -386,38 +446,37 @@ class _SemesterSwitcher extends StatelessWidget {
     if (semesters.isEmpty) {
       return const SizedBox.shrink();
     }
-    return Center(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.62),
-          borderRadius: BorderRadius.circular(999),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: selectedSemester.id,
-              isDense: true,
-              borderRadius: BorderRadius.circular(12),
-              items: [
-                for (final semester in semesters)
-                  DropdownMenuItem(
-                    value: semester.id,
-                    child: Text(
-                      semester.displayName,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: selectedSemester.id,
+            isDense: true,
+            isExpanded: true,
+            borderRadius: BorderRadius.circular(12),
+            items: [
+              for (final semester in semesters)
+                DropdownMenuItem(
+                  value: semester.id,
+                  child: Text(
+                    semester.displayName,
+                    overflow: TextOverflow.ellipsis,
                   ),
-              ],
-              onChanged: (value) {
-                final semester = semesters
-                    .where((item) => item.id == value)
-                    .firstOrNull;
-                if (semester != null && semester.id != selectedSemester.id) {
-                  onChanged(semester);
-                }
-              },
-            ),
+                ),
+            ],
+            onChanged: (value) {
+              final semester = semesters
+                  .where((item) => item.id == value)
+                  .firstOrNull;
+              if (semester != null && semester.id != selectedSemester.id) {
+                onChanged(semester);
+              }
+            },
           ),
         ),
       ),

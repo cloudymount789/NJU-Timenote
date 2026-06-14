@@ -266,12 +266,14 @@ class LocalSettingsRepository implements SettingsRepository {
   Future<SemesterTimetable> addSemesterTimetable({
     DateTime? startDate,
     int weekCount = 16,
+    String owner = '我',
     String? schoolYear,
     SemesterTermType? termType,
   }) async {
     final semester = await _source.addSemesterTimetable(
       startDate: startDate,
       weekCount: weekCount,
+      owner: owner,
       schoolYear: schoolYear,
       termType: termType,
     );

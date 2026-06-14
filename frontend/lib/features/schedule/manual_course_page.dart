@@ -512,7 +512,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
 }
 
 String _semesterText(SemesterTimetable semester) {
-  return '${semester.name} · ${semester.weekCount}周';
+  return '${semester.displayName} · ${semester.weekCount}周';
 }
 
 class _SectionLabel extends StatelessWidget {

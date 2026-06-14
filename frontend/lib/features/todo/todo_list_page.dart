@@ -270,15 +270,17 @@ class _TodoListPageState extends State<TodoListPage> {
                   if (_batchMode)
                     TextButton(
                       onPressed: () async {
+                        if (_selectedIds.isNotEmpty) {
+                          setState(_selectedIds.clear);
+                          return;
+                        }
                         final todos =
                             await (_future ?? Future.value(const <TodoItem>[]));
                         setState(() {
-                          _selectedIds.length == todos.length
-                              ? _selectedIds.clear()
-                              : _selectedIds.addAll(todos.map((e) => e.id));
+                          _selectedIds.addAll(todos.map((e) => e.id));
                         });
                       },
-                      child: Text(_selectedIds.isEmpty ? '全选' : '取消全选'),
+                      child: Text(_selectedIds.isEmpty ? '全选' : '取消选中'),
                     )
                   else ...[
                     AppIconButton(

@@ -84,6 +84,7 @@ class SemesterTimetable {
   const SemesterTimetable({
     required this.id,
     required this.name,
+    this.owner = '我',
     required this.schoolYear,
     required this.termType,
     required this.semesterStartDate,
@@ -94,6 +95,7 @@ class SemesterTimetable {
 
   final String id;
   final String name;
+  final String owner;
   final String schoolYear;
   final SemesterTermType termType;
   final DateTime semesterStartDate;
@@ -101,7 +103,7 @@ class SemesterTimetable {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  String get displayName => name;
+  String get displayName => generatedSemesterName(owner, schoolYear, termType);
 
   DateTime get semesterEndDate {
     return semesterStartDate.add(Duration(days: weekCount * 7 - 1));
@@ -124,7 +126,8 @@ class SemesterTimetable {
   Map<String, Object?> toJson() {
     return {
       'id': id,
-      'name': name,
+      'name': displayName,
+      'owner': owner,
       'schoolYear': schoolYear,
       'termType': termType.name,
       'semesterStartDate': _dateOnly(semesterStartDate),
@@ -145,7 +148,8 @@ class SemesterTimetable {
       id: json['id'] as String? ?? _semesterIdForDate(startDate),
       name:
           json['name'] as String? ??
-          suggestedSemesterName(schoolYear, termType),
+          generatedSemesterName('我', schoolYear, termType),
+      owner: json['owner'] as String? ?? '我',
       schoolYear: schoolYear,
       termType: termType,
       semesterStartDate: startDate,
@@ -164,6 +168,7 @@ class SemesterTimetable {
   SemesterTimetable copyWith({
     String? id,
     String? name,
+    String? owner,
     String? schoolYear,
     SemesterTermType? termType,
     DateTime? semesterStartDate,
@@ -175,7 +180,14 @@ class SemesterTimetable {
     final nextTermType = termType ?? this.termType;
     return SemesterTimetable(
       id: id ?? this.id,
-      name: name ?? suggestedSemesterName(nextSchoolYear, nextTermType),
+      name:
+          name ??
+          generatedSemesterName(
+            owner ?? this.owner,
+            nextSchoolYear,
+            nextTermType,
+          ),
+      owner: owner ?? this.owner,
       schoolYear: nextSchoolYear,
       termType: nextTermType,
       semesterStartDate: semesterStartDate ?? this.semesterStartDate,
@@ -227,7 +239,8 @@ String _dateOnly(DateTime value) {
 
 final defaultSemesterTimetable = SemesterTimetable(
   id: 'semester-2026-03-02',
-  name: '2025-2026学年第二学期',
+  name: '我的2025-2026学年第二学期课表',
+  owner: '我',
   schoolYear: '2025-2026',
   termType: SemesterTermType.spring,
   semesterStartDate: _defaultSemesterStartDate,
@@ -255,6 +268,16 @@ String suggestedSemesterName(String schoolYear, SemesterTermType termType) {
     SemesterTermType.spring => '第二学期',
   };
   return '$schoolYear学年$termName';
+}
+
+String generatedSemesterName(
+  String owner,
+  String schoolYear,
+  SemesterTermType termType,
+) {
+  final normalizedOwner = owner.trim().isEmpty ? '我' : owner.trim();
+  final ownerText = normalizedOwner == '我' ? '我的' : '$normalizedOwner的';
+  return '$ownerText${suggestedSemesterName(schoolYear, termType)}课表';
 }
 
 String _schoolYearForDate(DateTime date) {

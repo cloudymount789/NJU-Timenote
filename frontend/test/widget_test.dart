@@ -81,6 +81,39 @@ void main() {
     expect(find.text('新待办'), findsOneWidget);
   });
 
+  testWidgets(
+    'batch cancel selected clears current selection without select all',
+    (tester) async {
+      final repositories = RepositoryFactory.local();
+      await repositories.todos.createTodo(const TodoDraft(title: '第一件事'));
+      await repositories.todos.createTodo(const TodoDraft(title: '第二件事'));
+
+      await tester.pumpWidget(
+        _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('批量操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('第一件事'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('取消选中'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+
+      await tester.tap(find.text('取消选中'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('全选'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle), findsNothing);
+
+      await tester.tap(find.text('全选'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
+    },
+  );
+
   testWidgets('todo detail tag row opens tag selection with or without tags', (
     tester,
   ) async {
@@ -315,20 +348,14 @@ void main() {
     expect(find.text('春季课程'), findsOneWidget);
     expect(find.text('秋季课程'), findsNothing);
 
-    await tester.tap(find.text('2025-2026学年第二学期'));
+    await tester.tap(find.text('我的2025-2026学年第二学期课表'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('2026-2027学年第一学期').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('第 0 周'), findsOneWidget);
-    expect(find.text('秋季课程'), findsNothing);
-    expect(find.text('春季课程'), findsNothing);
-
-    await tester.tap(find.byTooltip('下一周'));
+    await tester.tap(find.text('我的2026-2027学年第一学期课表').last);
     await tester.pumpAndSettle();
 
     expect(find.text('第 1 周'), findsOneWidget);
     expect(find.text('秋季课程'), findsOneWidget);
+    expect(find.text('春季课程'), findsNothing);
   });
 
   testWidgets('schedule scoped delete hides one week or all weeks', (

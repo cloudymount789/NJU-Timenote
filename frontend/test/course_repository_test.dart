@@ -41,7 +41,7 @@ void main() {
     expect(settings.semesters, hasLength(1));
     expect(settings.activeSemester.semesterStartDate, DateTime(2026, 3, 2));
     expect(settings.activeSemester.weekCount, 16);
-    expect(settings.activeSemester.name, '2025-2026学年第二学期');
+    expect(settings.activeSemester.name, '我的2025-2026学年第二学期课表');
   });
 
   test('semester calculates current week from start date', () {
@@ -59,6 +59,10 @@ void main() {
       suggestedSemesterName('2025-2026', SemesterTermType.spring),
       '2025-2026学年第二学期',
     );
+    expect(
+      generatedSemesterName('我', '2026-2027', SemesterTermType.spring),
+      '我的2026-2027学年第二学期课表',
+    );
   });
 
   test('local settings source creates updates deletes semesters', () async {
@@ -73,14 +77,14 @@ void main() {
       termType: SemesterTermType.autumn,
     );
     expect((await source.getSemesterSettings()).semesters, hasLength(2));
-    expect(added.displayName, '2026-2027学年第一学期');
+    expect(added.displayName, '我的2026-2027学年第一学期课表');
 
     await source.updateSemesterTimetable(
       added.copyWith(weekCount: 18, termType: SemesterTermType.spring),
     );
     var settings = await source.getSemesterSettings();
     expect(settings.semesterById(added.id)?.weekCount, 18);
-    expect(settings.semesterById(added.id)?.displayName, '2026-2027学年第二学期');
+    expect(settings.semesterById(added.id)?.displayName, '我的2026-2027学年第二学期课表');
 
     await source.deleteSemesterTimetable(added.id);
     settings = await source.getSemesterSettings();

@@ -34,6 +34,7 @@ class LocalSettingsSource {
   Future<SemesterTimetable> addSemesterTimetable({
     DateTime? startDate,
     int weekCount = 16,
+    String owner = '我',
     String? schoolYear,
     SemesterTermType? termType,
   }) async {
@@ -44,7 +45,8 @@ class LocalSettingsSource {
     final semesterTermType = termType ?? _termType(date);
     final semester = SemesterTimetable(
       id: 'semester-${now.microsecondsSinceEpoch}',
-      name: suggestedSemesterName(semesterSchoolYear, semesterTermType),
+      name: generatedSemesterName(owner, semesterSchoolYear, semesterTermType),
+      owner: owner,
       schoolYear: semesterSchoolYear,
       termType: semesterTermType,
       semesterStartDate: DateTime(date.year, date.month, date.day),
@@ -134,11 +136,11 @@ void _validateSemester(
   SemesterTimetable semester,
   List<SemesterTimetable> existing,
 ) {
-  if (semester.weekCount < 1 || semester.weekCount > 25) {
+  if (semester.weekCount < 1 || semester.weekCount > 30) {
     throw ArgumentError.value(
       semester.weekCount,
       'weekCount',
-      '学期持续周数需在 1-25 周之间',
+      '学期持续周数需在 1-30 周之间',
     );
   }
   for (final other in existing) {
