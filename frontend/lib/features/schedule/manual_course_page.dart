@@ -366,14 +366,29 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                 },
                 child: DropdownButtonFormField<String>(
                   initialValue: selected,
+                  isExpanded: true,
                   decoration: const InputDecoration(labelText: '学期'),
                   items: [
                     for (final semester in _semesters)
                       DropdownMenuItem(
                         value: semester.id,
-                        child: Text(_semesterText(semester)),
+                        child: Text(
+                          _semesterText(semester),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                   ],
+                  selectedItemBuilder: (context) {
+                    return [
+                      for (final semester in _semesters)
+                        Text(
+                          _semesterText(semester),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ];
+                  },
                   onChanged: (value) {
                     if (value != null) {
                       setDialogState(() => selected = value);
@@ -587,7 +602,15 @@ class _PickerRow extends StatelessWidget {
                 ),
               ),
             ),
-            Text(value, style: const TextStyle(color: AppColors.muted)),
+            Flexible(
+              child: Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+                style: const TextStyle(color: AppColors.muted),
+              ),
+            ),
             const SizedBox(width: 8),
             const Icon(Icons.chevron_right, size: 18, color: AppColors.line),
           ],

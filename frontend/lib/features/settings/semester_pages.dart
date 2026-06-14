@@ -386,43 +386,63 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
                   ? Center(child: Text(_error!))
-                  : AppCard(
-                      radius: 12,
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        children: [
-                          _DetailRow(
-                            title: '课表归属',
-                            value: _owner,
-                            onTap: _editOwner,
-                          ),
-                          const _Divider(),
-                          _InfoRow(title: '课表名称', value: _generatedName),
-                          const _Divider(),
-                          _DetailRow(
-                            title: '学年范围',
-                            value: _schoolYear,
-                            onTap: _pickSchoolYear,
-                          ),
-                          const _Divider(),
-                          _DetailRow(
-                            title: '学期类型',
-                            value: _termType.label,
-                            onTap: _pickTermType,
-                          ),
-                          const _Divider(),
-                          _DetailRow(
-                            title: '开学日期',
-                            value: _formatDate(_startDate),
-                            onTap: _pickStartDate,
-                          ),
-                          const _Divider(),
-                          _DetailRow(
-                            title: '持续周数',
-                            value: '$_weekCount 周',
-                            onTap: _editWeekCount,
-                          ),
-                        ],
+                  : SingleChildScrollView(
+                      child: AppCard(
+                        radius: 12,
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                10,
+                              ),
+                              child: Text(
+                                _generatedName,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.ink,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                            const _Divider(),
+                            _DetailRow(
+                              title: '课表归属',
+                              value: _owner,
+                              onTap: _editOwner,
+                            ),
+                            const _Divider(),
+                            _DetailRow(
+                              title: '学年范围',
+                              value: _schoolYear,
+                              onTap: _pickSchoolYear,
+                            ),
+                            const _Divider(),
+                            _DetailRow(
+                              title: '学期类型',
+                              value: _termType.label,
+                              onTap: _pickTermType,
+                            ),
+                            const _Divider(),
+                            _DetailRow(
+                              title: '开学日期',
+                              value: _formatDate(_startDate),
+                              onTap: _pickStartDate,
+                            ),
+                            const _Divider(),
+                            _DetailRow(
+                              title: '持续周数',
+                              value: '$_weekCount 周',
+                              onTap: _editWeekCount,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
             ),
@@ -555,46 +575,6 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.title, required this.value});
-
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Flexible(
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: const TextStyle(color: AppColors.muted),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _OwnerDialog extends StatefulWidget {
   const _OwnerDialog({required this.initialOwner});
 
@@ -618,6 +598,7 @@ class _OwnerDialogState extends State<_OwnerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: const Text('课表归属'),
       content: TextField(
         controller: _controller,

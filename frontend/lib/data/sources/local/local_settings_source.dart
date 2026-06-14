@@ -143,28 +143,6 @@ void _validateSemester(
       '学期持续周数需在 1-30 周之间',
     );
   }
-  for (final other in existing) {
-    if (other.id == semester.id) {
-      continue;
-    }
-    if (_dateRangesOverlap(
-      semester.semesterStartDate,
-      semester.semesterEndDate,
-      other.semesterStartDate,
-      other.semesterEndDate,
-    )) {
-      throw StateError('学期日期范围不能重叠');
-    }
-  }
-}
-
-bool _dateRangesOverlap(
-  DateTime aStart,
-  DateTime aEnd,
-  DateTime bStart,
-  DateTime bEnd,
-) {
-  return !aEnd.isBefore(bStart) && !bEnd.isBefore(aStart);
 }
 
 String _schoolYear(DateTime date) {

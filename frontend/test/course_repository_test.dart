@@ -92,16 +92,17 @@ void main() {
     expect(settings.semesters, hasLength(1));
   });
 
-  test('local settings source rejects overlapping semester ranges', () async {
+  test('local settings source allows overlapping semester ranges', () async {
     final source = LocalSettingsSource();
 
-    expect(
-      () => source.addSemesterTimetable(
-        startDate: DateTime(2026, 3, 9),
-        weekCount: 16,
-      ),
-      throwsA(isA<StateError>()),
+    final semester = await source.addSemesterTimetable(
+      startDate: DateTime(2026, 3, 9),
+      weekCount: 16,
     );
+
+    final settings = await source.getSemesterSettings();
+    expect(settings.semesterById(semester.id), isNotNull);
+    expect(settings.semesters, hasLength(2));
   });
 
   test('local source filters by week rule and keeps stable colors', () async {

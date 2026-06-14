@@ -13,6 +13,7 @@ import 'package:nju_timenote/features/home/home_page.dart';
 import 'package:nju_timenote/features/recommendation/next_thing_page.dart';
 import 'package:nju_timenote/features/schedule/manual_course_page.dart';
 import 'package:nju_timenote/features/schedule/schedule_page.dart';
+import 'package:nju_timenote/features/settings/semester_pages.dart';
 import 'package:nju_timenote/features/todo/todo_detail_page.dart';
 import 'package:nju_timenote/features/todo/todo_list_page.dart';
 
@@ -255,6 +256,45 @@ void main() {
     expect(find.text('16'), findsOneWidget);
     expect(find.text('25'), findsNothing);
   });
+
+  testWidgets('semester detail uses generated name as card title', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: RepositoryFactory.local(),
+        home: const SemesterDetailPage(semesterId: 'semester-2026-03-02'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('我的2025-2026学年第二学期课表'), findsOneWidget);
+    expect(find.text('课表名称'), findsNothing);
+  });
+
+  testWidgets(
+    'manual course semester picker handles long names on narrow width',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(360, 780));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final repositories = RepositoryFactory.local();
+
+      await tester.pumpWidget(
+        _ScopedTestApp(
+          repositories: repositories,
+          home: const ManualCoursePage(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('添加至'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('添加至学期'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('schedule pull refresh reloads course data', (tester) async {
     final fixedNow = DateTime(2026, 3, 10, 9);
