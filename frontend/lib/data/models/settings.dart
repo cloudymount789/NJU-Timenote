@@ -44,10 +44,13 @@ class SemesterSettings {
   }
 
   factory SemesterSettings.fromJson(Map<String, Object?> json) {
+    final hasSemestersKey = json.containsKey('semesters');
     final semesters = (json['semesters'] as List? ?? const [])
         .map((semester) => SemesterTimetable.fromJson((semester as Map).cast()))
         .toList();
-    if (semesters.isEmpty && json['semesterStartDate'] is String) {
+    if (!hasSemestersKey &&
+        semesters.isEmpty &&
+        json['semesterStartDate'] is String) {
       final startDate = DateTime.parse(json['semesterStartDate']! as String);
       semesters.add(
         defaultSemesterTimetable.copyWith(

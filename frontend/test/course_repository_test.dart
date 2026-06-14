@@ -44,6 +44,29 @@ void main() {
     expect(settings.activeSemester.name, '我的2025-2026学年第二学期课表');
   });
 
+  test('semester settings keep explicitly empty semester list', () {
+    final settings = SemesterSettings.fromJson({
+      'semesterStartDate': '2026-03-02',
+      'semesters': const [],
+      'periods': const [],
+    });
+
+    expect(settings.semesters, isEmpty);
+  });
+
+  test(
+    'legacy semester settings migrate start date when semesters key missing',
+    () {
+      final settings = SemesterSettings.fromJson({
+        'semesterStartDate': '2026-03-02',
+        'periods': const [],
+      });
+
+      expect(settings.semesters, hasLength(1));
+      expect(settings.activeSemester.semesterStartDate, DateTime(2026, 3, 2));
+    },
+  );
+
   test('semester calculates current week from start date', () {
     expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 2)), 1);
     expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 8)), 1);

@@ -91,6 +91,24 @@ void main() {
   });
 
   test(
+    'deleting all semester settings survives repository recreation',
+    () async {
+      final clock = MutableAppClock(DateTime(2026, 6, 12, 9));
+      var repos = await RepositoryFactory.persistent(clock);
+      var settings = await repos.settings.getSemesterSettings();
+
+      for (final semester in settings.semesters) {
+        await repos.settings.deleteSemesterTimetable(semester.id);
+      }
+
+      repos = await RepositoryFactory.persistent(clock);
+      settings = await repos.settings.getSemesterSettings();
+
+      expect(settings.semesters, isEmpty);
+    },
+  );
+
+  test(
     'todos tags filters and repeat state survive repository recreation',
     () async {
       final clock = MutableAppClock(DateTime(2026, 6, 12, 9));

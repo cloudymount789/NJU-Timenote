@@ -17,10 +17,8 @@ class LocalSettingsSource {
     final data = store?.readMap(LocalStoreKeys.settings);
     if (data != null && data.isNotEmpty) {
       final settings = SemesterSettings.fromJson(data);
-      if (settings.semesters.isNotEmpty) {
-        _settings = settings;
-        return settings;
-      }
+      _settings = settings;
+      return settings;
     }
     final settings = SemesterSettings(
       semesters: [defaultSemesterTimetable],
