@@ -341,3 +341,57 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 - **你开发后端**：从第二阶段（截图识别）开始，提供真实的 API endpoint。API 契约以本文档和 `docs/backend-api.md` 为准。
 
 如果协作者发现 API 设计有问题（字段缺失、格式不合理），应该**先修改本文档**，双方确认后各自同步。
+
+---
+
+## 附录：当前 Flutter 实现与后端约束的差异记录
+
+本附录只记录当前 Flutter 前端实现现状与上文契约/后端约束不一致或尚未对齐的地方，不改变上文契约本身。
+
+1. **数据存储仍是内存态，不是设备持久化**
+   - 契约原则要求课程、待办、标签、设置默认保存在用户设备上。
+   - 当前 `frontend/lib/data/sources/local/` 下的课程、待办、标签、设置 source 均为内存实现，App 重启后数据不会保留。
+
+2. **后端 HTTP API 尚未接入**
+   - 契约定义了 `/api/v1` 下的课程、待办、标签、设置、服务能力等 HTTP API。
+   - 当前 Flutter 通过 repository 调用本地 source，不发起 HTTP 请求；`remote/` 目录仍是未来后端边界占位。
+
+3. **ID 生成格式不是契约建议的 UUID**
+   - 契约建议客户端生成全局唯一字符串，例如 `course-<UUID>`、`todo-<UUID>`。
+   - 当前课程 ID 使用 `course-${now.microsecondsSinceEpoch}`，待办 ID 使用 `todo-${now.microsecondsSinceEpoch}-${counter}`，不是 UUID 格式。
+
+4. **大目标拆分默认 tag 与契约不一致**
+   - 契约 4.4 写明大目标拆分默认标签为 `"学习"`。
+   - 当前 Flutter 实现不再默认添加 `学习`，而是只为每个小目标添加一个“大目标 tag”：默认使用大目标名称，超过 12 个字符截断为前 12 个字符 + `...`。
+
+5. **大目标拆分未实现显式事务/回滚机制**
+   - 契约要求所有子目标在一个事务中创建，任意一条失败则全部回滚。
+   - 当前 `LocalGoalSplitSource` 会先做基础校验，再逐条调用 `createTodo`；内存实现中没有显式事务或失败回滚机制。
+
+6. **TodoFilter 缺少 `onlyDeadline` 字段**
+   - 契约 2.5 / 3.3 包含 `onlyDeadline=true/false` 查询参数。
+   - 当前 `TodoFilter` 只有 `date`、`kinds`、`statuses`、`tags`，没有独立的 `onlyDeadline`；前端用 `kinds: [TodoKind.deadline]` 实现类似筛选。
+
+7. **课程更新是前端本地扩展，契约 API 未定义对应接口**
+   - 契约课程 API 目前只有按周查询、创建、删除和截图导入。
+   - 当前 `CourseRepository` / `LocalCourseSource` 支持 `updateCourse`，用于本地编辑课程；若接后端，需要补充或确认课程更新 HTTP API。
+
+8. **待办取消完成/切换完成是前端本地扩展**
+   - 契约定义了 `POST /todos/{todoId}/complete`，未单独定义取消完成或 toggle API。
+   - 当前 `TodoRepository` 支持 `reopenTodo` 与 `toggleTodoCompletion`，UI 中普通/DDL 待办可完成后取消完成。
+
+9. **截图导入课程流程未接真实服务**
+   - 契约定义 `POST /api/v1/courses/imports/screenshot`，第二阶段使用 `multipart/form-data`。
+   - 当前截图添加课程页面是流程壳，只提示真实识别服务未接入，不会上传图片或写入课程。
+
+10. **设置、备份、导出和服务能力接口未完整实现**
+    - 契约定义了学期、节次、备份、导出、健康检查、服务能力等接口。
+    - 当前 `LocalSettingsSource` 仅返回固定 `semesterStartDate: 2026-09-01` 和空 `periods`；未实现节次设置持久化、PUT 修改、备份、导出、`/health`、`/api/v1/capabilities` 等能力。
+
+11. **推荐逻辑为本地规则，不调用契约中的推荐 API**
+    - 契约定义 `POST /api/v1/todos/recommendations`。
+    - 当前 `LocalRecommendationSource` 根据本地未完成待办和输入滑杆用简单规则生成推荐；没有后端请求，也没有服务端推荐策略。
+
+12. **部分 repository 查询能力是前端便利方法，不属于当前 HTTP 契约**
+    - 当前前端有 `getTodoById`、`getNextTodo`、`getCourseById`、`getNextCourse` 等本地便利方法。
+    - 上文 HTTP API 暂未定义这些单条查询或“下一项”接口；接入后端时需要由前端组合现有列表接口，或补充对应 API 契约。
