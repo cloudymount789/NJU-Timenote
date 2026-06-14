@@ -412,3 +412,8 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 12. **部分 repository 查询能力是前端便利方法，不属于当前 HTTP 契约**
     - 当前前端有 `getTodoById`、`getNextTodo`、`getCourseById`、`getNextCourse` 等本地便利方法。
     - 上文 HTTP API 暂未定义这些单条查询或“下一项”接口；接入后端时需要由前端组合现有列表接口，或补充对应 API 契约。
+
+13. **学期课表管理字段与校验规则待后端确认**
+    - 当前 Flutter 本地实现已在 `SemesterTimetable` 中增加 `schoolYear`（如 `2025-2026`）和 `termType`（`spring` / `autumn`），用于设置页的学期详情编辑；旧 `name` 字段仍保留兼容。
+    - 当前本地实现支持新增、编辑、删除多个学期课表，并校验不同学期的日期周范围不能重叠。
+    - 上文 HTTP API 仍只有整体 `GET/PUT /api/v1/settings/semester`，尚未确认后端是否需要拆分新增、编辑、删除单个学期的接口，也未确认 `schoolYear`、`termType` 是否进入不可变契约正文。

@@ -10,6 +10,7 @@ import 'package:nju_timenote/data/repositories/app_repositories.dart';
 import 'package:nju_timenote/data/repositories/repository_factory.dart';
 import 'package:nju_timenote/features/home/home_page.dart';
 import 'package:nju_timenote/features/recommendation/next_thing_page.dart';
+import 'package:nju_timenote/features/schedule/manual_course_page.dart';
 import 'package:nju_timenote/features/schedule/schedule_page.dart';
 import 'package:nju_timenote/features/todo/todo_detail_page.dart';
 import 'package:nju_timenote/features/todo/todo_list_page.dart';
@@ -196,6 +197,64 @@ void main() {
 
     expect(find.text('第 2 周'), findsOneWidget);
     expect(find.text('第二周课程'), findsOneWidget);
+  });
+
+  testWidgets('manual course week picker follows semester week count', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        home: const ManualCoursePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1-16周 全部'), findsOneWidget);
+
+    await tester.tap(find.text('1-16周 全部'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('选择上课周次'), findsOneWidget);
+    expect(find.text('16'), findsOneWidget);
+    expect(find.text('25'), findsNothing);
+  });
+
+  testWidgets('schedule pull refresh reloads course data', (tester) async {
+    final fixedNow = DateTime(2026, 3, 10, 9);
+    final repositories = RepositoryFactory.local(FixedAppClock(fixedNow));
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        clock: FixedAppClock(fixedNow),
+        home: const SchedulePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('刷新后课程'), findsNothing);
+
+    await repositories.courses.createCourse(
+      const CourseDraft(
+        name: '刷新后课程',
+        teacher: '',
+        location: '仙 I-101',
+        note: '',
+        dayOfWeek: 2,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 2,
+        endWeek: 2,
+      ),
+    );
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 320));
+    await tester.pumpAndSettle();
+
+    expect(find.text('刷新后课程'), findsOneWidget);
   });
 
   testWidgets('next thing add button creates todo and shows refreshed state', (

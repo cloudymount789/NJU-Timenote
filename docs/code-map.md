@@ -6,7 +6,7 @@
 
 - `frontend/lib/main.dart`：启动 `TimenoteApp`。
 - `frontend/lib/app/app.dart`：根 `MaterialApp`、主题、路由接入和 `AppScope` repository 注入。
-- `frontend/lib/app/router.dart`：命名路由和路由参数对象；使用通用 route 返回值承载详情、tag 选择和大目标拆分等流程结果。
+- `frontend/lib/app/router.dart`：命名路由和路由参数对象；使用通用 route 返回值承载详情、tag 选择、大目标拆分和学期详情等流程结果。
 
 ## 主题与设计 Token
 
@@ -33,19 +33,20 @@
 
 ## 数据边界
 
-- `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft`、所属学期 `semesterId` 和周次匹配规则；`settings.dart` 已包含多个学期课表配置、开学日期、持续周数和上次选中学期；`todo.dart` 已包含 `TodoItem`、`TodoDraft`、`TodoPatch`、`TodoFilter`、PATCH 字段语义和筛选匹配。
+- `frontend/lib/data/models/`：按接口契约形状建立的课程、待办、设置、推荐、大目标拆分模型；`course.dart` 已包含 `Course` 序列化、`CourseDraft`、所属学期 `semesterId` 和周次匹配规则；`settings.dart` 已包含多个学期课表配置、学年范围、春/秋学期类型、开学日期、持续周数和上次选中学期；`todo.dart` 已包含 `TodoItem`、`TodoDraft`、`TodoPatch`、`TodoFilter`、PATCH 字段语义和筛选匹配。
 - `frontend/lib/data/repositories/`：repository 接口和本地 repository 工厂；课程 repository 已支持按周查询、单条查询、下一节课计算、创建、更新、删除和课程名稳定颜色；待办 repository 已支持查询、筛选、创建、更新、删除、完成、取消完成、完成状态切换、手动排序、智能排序、批量删除、批量完成和基础搜索；`AppRepositories.changes` 是 repository 级刷新信号，课程/待办/快速创建/大目标拆分写入成功后触发，首页、待办页等页面应监听后重新查询 repository；`RepositoryFactory.persistent(clock)` 用 `shared_preferences` 初始化设备本地 JSON 存储，是 App 运行入口；`RepositoryFactory.local(clock)` 保留为纯内存 fake，供单元测试和 widget 测试使用；`QuickTodoRepository` 封装一句话创建边界。
-- `frontend/lib/data/sources/local/`：本地 source；`local_json_store.dart` 是 `shared_preferences` JSON 快照适配层；`LocalCourseSource` 持久化课程列表和课程名稳定颜色映射，按课程所属学期与学期持续周数筛选课程，并按当前日期计算当前教学周/下一节课和提供 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 持久化待办列表、默认/手动/智能排序状态、手动顺序、重复周期完成记录和计数器，并负责契约排序、筛选、重复规则投影、7 天已完成记录清理、duration 自动完成和批量规则；`LocalTagSource` 持久化预置 tag 与新增 tag；`LocalSettingsSource` 读取/写入多个学期课表设置快照，默认创建 `2026-03-02` 开学、持续 `16` 周的学期；`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办，并为每条小目标只添加一个“大目标 tag”（由大目标名称生成，超过 12 个字符截断为前 12 个字符 + `...`），不再默认添加 `学习`。
+- `frontend/lib/data/sources/local/`：本地 source；`local_json_store.dart` 是 `shared_preferences` JSON 快照适配层；`LocalCourseSource` 持久化课程列表和课程名稳定颜色映射，按课程所属学期与学期持续周数筛选课程，并按当前日期计算当前教学周/下一节课和提供 `defaultPeriodTimes` 节次时间配置；`LocalTodoSource` 持久化待办列表、默认/手动/智能排序状态、手动顺序、重复周期完成记录和计数器，并负责契约排序、筛选、重复规则投影、7 天已完成记录清理、duration 自动完成和批量规则；`LocalTagSource` 持久化预置 tag 与新增 tag；`LocalSettingsSource` 读取/写入多个学期课表设置快照，默认创建 `2026-03-02` 开学、持续 `16` 周的学期，并校验学期日期范围不重叠；`LocalRecommendationSource` 用本地规则生成推荐，`LocalGoalSplitSource` 将小目标批量生成 deadline 待办，并为每条小目标只添加一个“大目标 tag”（由大目标名称生成，超过 12 个字符截断为前 12 个字符 + `...`），不再默认添加 `学习`。
 - `frontend/lib/data/sources/mock/`：mock 边界占位；默认不启用 mock 数据。
 - `frontend/lib/data/sources/remote/`：未来后端边界占位；UI 不得直接调用。
 
 ## 功能页面
 
 - `frontend/lib/features/home/home_page.dart`：任务 1 首页和主导航；首页通过 repository 读取真实的下一节课、下一件事和 DDL 提醒，监听 `AppRepositories.changes` 并支持下拉刷新；底部一句话输入栏通过 `Stack` 固定在屏幕底部上层。
-- `frontend/lib/features/settings/settings_page.dart`：设置入口，包含课表与作息、数据与分享分区；课表与作息中可管理多个学期课表、添加学期、修改开学日期和持续周数。
-- `frontend/lib/features/schedule/schedule_page.dart`：课表网格、按学期开学日计算默认当前周、周切换、周几日期、学期外周数空态、跨节/跨上午下午切割、冲突排列、点击编辑、长按删除。
+- `frontend/lib/features/settings/settings_page.dart`：设置入口，包含课表与作息、数据与分享分区；“管理学期课表”进入独立管理路由。
+- `frontend/lib/features/settings/semester_pages.dart`：学期课表管理列表和详情页；支持查看、新增、编辑、长按删除、学年范围/春秋学期/开学日期/持续周数设置和重叠校验提示。
+- `frontend/lib/features/schedule/schedule_page.dart`：课表网格、按学期开学日计算默认当前周、下拉刷新、周切换、周几日期、学期外周数空态、跨上午/下午/晚间切割、冲突排列、点击编辑、长按删除。
 - `frontend/lib/features/schedule/add_schedule_page.dart`：添加课表入口页。
-- `frontend/lib/features/schedule/manual_course_page.dart`：手动添加/编辑课程表单、添加至学期、周次/节次选择和校验。
+- `frontend/lib/features/schedule/manual_course_page.dart`：手动添加/编辑课程表单、添加至学期、随学期持续周数联动的周次选择、节次选择和校验。
 - `frontend/lib/features/schedule/screenshot_course_page.dart`：截图添加课程流程壳，当前提示识别服务未接入。
 - `frontend/lib/features/todo/todo_list_page.dart`：待办列表、空态、下拉刷新、筛选侧栏、批量模式、拖拽排序、三种待办行、底部输入栏入口；右上角为批量编辑/筛选/手动添加待办，智能排序入口在列表大卡片左上区域。
 - `frontend/lib/features/todo/todo_detail_page.dart`：待办新建/编辑详情页、重复优先的类型切换、一次性日期时间选择、重复周几/时间选择、半星优先级、删除确认。

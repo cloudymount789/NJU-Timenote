@@ -259,18 +259,37 @@ class LocalSettingsRepository implements SettingsRepository {
   Future<SemesterTimetable> addSemesterTimetable({
     DateTime? startDate,
     int weekCount = 16,
+    String? schoolYear,
+    SemesterTermType? termType,
   }) async {
     final semester = await _source.addSemesterTimetable(
       startDate: startDate,
       weekCount: weekCount,
+      schoolYear: schoolYear,
+      termType: termType,
     );
     _changes.markChanged();
     return semester;
   }
 
   @override
+  Future<SemesterTimetable> saveSemesterTimetable(
+    SemesterTimetable semester,
+  ) async {
+    final saved = await _source.saveSemesterTimetable(semester);
+    _changes.markChanged();
+    return saved;
+  }
+
+  @override
   Future<void> updateSemesterTimetable(SemesterTimetable semester) async {
     await _source.updateSemesterTimetable(semester);
+    _changes.markChanged();
+  }
+
+  @override
+  Future<void> deleteSemesterTimetable(String semesterId) async {
+    await _source.deleteSemesterTimetable(semesterId);
     _changes.markChanged();
   }
 

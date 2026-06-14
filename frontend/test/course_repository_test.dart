@@ -49,6 +49,45 @@ void main() {
     expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 9)), 2);
   });
 
+  test('local settings source creates updates deletes semesters', () async {
+    final source = LocalSettingsSource(
+      clock: FixedAppClock(DateTime(2026, 7, 1, 9)),
+    );
+
+    final added = await source.addSemesterTimetable(
+      startDate: DateTime(2026, 9, 7),
+      weekCount: 20,
+      schoolYear: '2026-2027',
+      termType: SemesterTermType.autumn,
+    );
+    expect((await source.getSemesterSettings()).semesters, hasLength(2));
+    expect(added.displayName, '2026-2027 秋季学期');
+
+    await source.updateSemesterTimetable(
+      added.copyWith(weekCount: 18, termType: SemesterTermType.spring),
+    );
+    var settings = await source.getSemesterSettings();
+    expect(settings.semesterById(added.id)?.weekCount, 18);
+    expect(settings.semesterById(added.id)?.displayName, '2026-2027 春季学期');
+
+    await source.deleteSemesterTimetable(added.id);
+    settings = await source.getSemesterSettings();
+    expect(settings.semesterById(added.id), isNull);
+    expect(settings.semesters, hasLength(1));
+  });
+
+  test('local settings source rejects overlapping semester ranges', () async {
+    final source = LocalSettingsSource();
+
+    expect(
+      () => source.addSemesterTimetable(
+        startDate: DateTime(2026, 3, 9),
+        weekCount: 16,
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
+
   test('local source filters by week rule and keeps stable colors', () async {
     final source = LocalCourseSource();
     final first = await source.createCourse(
@@ -266,6 +305,49 @@ void main() {
 
     expect(find.text('跨节课程'), findsWidgets);
     expect(find.text('冲突课程'), findsOneWidget);
+  });
+
+  testWidgets('timetable splits courses across evening boundary', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 390,
+            height: 760,
+            child: TimetableView(
+              courses: [
+                Course(
+                  id: 'course-evening',
+                  name: '晚间跨段',
+                  teacher: '',
+                  location: 'A',
+                  note: '',
+                  dayOfWeek: 2,
+                  startPeriod: 7,
+                  endPeriod: 9,
+                  weekRule: WeekRule.all,
+                  startWeek: 1,
+                  endWeek: 16,
+                  colorKey: 'purple',
+                  source: CourseSource.manual,
+                  createdAt: now,
+                  updatedAt: now,
+                ),
+              ],
+              currentDate: DateTime(2026, 6, 12),
+              onDeleteCourse: (_) {},
+              onOpenCourse: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('晚间跨段'), findsNWidgets(2));
   });
 
   testWidgets('timetable shows period times and highlights today', (

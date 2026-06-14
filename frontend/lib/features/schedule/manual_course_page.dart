@@ -59,6 +59,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
     }
     _semesters = settings.semesters;
     _semesterId = settings.activeSemester.id;
+    _endWeek = settings.activeSemester.weekCount;
     final id = widget.courseId;
     if (id == null) {
       setState(() => _loading = false);
@@ -110,6 +111,8 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       message = '请填写上课地点。';
     } else if (_endWeek < _startWeek) {
       message = '结束周不能早于起始周。';
+    } else if (_endWeek > _selectedSemesterWeekCount) {
+      message = '结束周不能超过当前学期持续周数。';
     } else if (_endPeriod < _startPeriod) {
       message = '结束节不能早于起始节。';
     } else if (_semesterId == null || _semesters.isEmpty) {
@@ -154,9 +157,10 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
   }
 
   Future<void> _openWeekPicker() async {
+    final maxWeek = _selectedSemesterWeekCount;
     var rule = _weekRule;
-    var start = _startWeek;
-    var end = _endWeek;
+    var start = _startWeek.clamp(1, maxWeek).toInt();
+    var end = _endWeek.clamp(1, maxWeek).toInt();
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -170,6 +174,9 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                 onConfirm: () {
                   if (end < start) {
                     showAppSnackBar(context, '结束周不能早于起始周。');
+                    return;
+                  } else if (end > maxWeek) {
+                    showAppSnackBar(context, '结束周不能超过当前学期持续周数。');
                     return;
                   }
                   setState(() {
@@ -208,7 +215,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                       child: _NumberDropdown(
                         value: start,
                         min: 1,
-                        max: 25,
+                        max: maxWeek,
                         label: '起始',
                         onChanged: (value) =>
                             setDialogState(() => start = value),
@@ -219,7 +226,7 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
                       child: _NumberDropdown(
                         value: end,
                         min: 1,
-                        max: 25,
+                        max: maxWeek,
                         label: '结束',
                         onChanged: (value) => setDialogState(() => end = value),
                       ),
@@ -346,7 +353,10 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
               return PickerShell(
                 title: '添加至学期',
                 onConfirm: () {
-                  setState(() => _semesterId = selected);
+                  setState(() {
+                    _semesterId = selected;
+                    _clampWeeksToSelectedSemester();
+                  });
                   Navigator.of(context).pop();
                 },
                 child: DropdownButtonFormField<String>(
@@ -391,6 +401,22 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
         .where((item) => item.id == _semesterId)
         .firstOrNull;
     return semester == null ? '去设置添加学期' : _semesterText(semester);
+  }
+
+  int get _selectedSemesterWeekCount {
+    final semester = _semesters
+        .where((item) => item.id == _semesterId)
+        .firstOrNull;
+    return semester?.weekCount ?? 25;
+  }
+
+  void _clampWeeksToSelectedSemester() {
+    final maxWeek = _selectedSemesterWeekCount;
+    _startWeek = _startWeek.clamp(1, maxWeek).toInt();
+    _endWeek = _endWeek.clamp(1, maxWeek).toInt();
+    if (_endWeek < _startWeek) {
+      _endWeek = _startWeek;
+    }
   }
 
   String _weekdayName(int day) {

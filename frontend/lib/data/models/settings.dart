@@ -84,6 +84,8 @@ class SemesterTimetable {
   const SemesterTimetable({
     required this.id,
     required this.name,
+    required this.schoolYear,
+    required this.termType,
     required this.semesterStartDate,
     required this.weekCount,
     required this.createdAt,
@@ -91,9 +93,13 @@ class SemesterTimetable {
 
   final String id;
   final String name;
+  final String schoolYear;
+  final SemesterTermType termType;
   final DateTime semesterStartDate;
   final int weekCount;
   final DateTime createdAt;
+
+  String get displayName => '$schoolYear ${termType.label}';
 
   DateTime get semesterEndDate {
     return semesterStartDate.add(Duration(days: weekCount * 7 - 1));
@@ -117,6 +123,8 @@ class SemesterTimetable {
     return {
       'id': id,
       'name': name,
+      'schoolYear': schoolYear,
+      'termType': termType.name,
       'semesterStartDate': _dateOnly(semesterStartDate),
       'weekCount': weekCount,
       'createdAt': createdAt.toIso8601String(),
@@ -125,9 +133,16 @@ class SemesterTimetable {
 
   factory SemesterTimetable.fromJson(Map<String, Object?> json) {
     final startDate = DateTime.parse(json['semesterStartDate']! as String);
+    final termType = json['termType'] is String
+        ? SemesterTermType.values.byName(json['termType']! as String)
+        : _termTypeForDate(startDate);
+    final schoolYear =
+        json['schoolYear'] as String? ?? _schoolYearForDate(startDate);
     return SemesterTimetable(
       id: json['id'] as String? ?? _semesterIdForDate(startDate),
-      name: json['name'] as String? ?? _semesterNameForDate(startDate),
+      name: json['name'] as String? ?? _semesterNameFor(schoolYear, termType),
+      schoolYear: schoolYear,
+      termType: termType,
       semesterStartDate: startDate,
       weekCount: json['weekCount'] as int? ?? 16,
       createdAt: json['createdAt'] is String
@@ -139,18 +154,33 @@ class SemesterTimetable {
   SemesterTimetable copyWith({
     String? id,
     String? name,
+    String? schoolYear,
+    SemesterTermType? termType,
     DateTime? semesterStartDate,
     int? weekCount,
     DateTime? createdAt,
   }) {
+    final nextSchoolYear = schoolYear ?? this.schoolYear;
+    final nextTermType = termType ?? this.termType;
     return SemesterTimetable(
       id: id ?? this.id,
-      name: name ?? this.name,
+      name: name ?? _semesterNameFor(nextSchoolYear, nextTermType),
+      schoolYear: nextSchoolYear,
+      termType: nextTermType,
       semesterStartDate: semesterStartDate ?? this.semesterStartDate,
       weekCount: weekCount ?? this.weekCount,
       createdAt: createdAt ?? this.createdAt,
     );
   }
+}
+
+enum SemesterTermType {
+  spring('春季学期'),
+  autumn('秋季学期');
+
+  const SemesterTermType(this.label);
+
+  final String label;
 }
 
 class PeriodTime {
@@ -186,6 +216,8 @@ String _dateOnly(DateTime value) {
 final defaultSemesterTimetable = SemesterTimetable(
   id: 'semester-2026-03-02',
   name: '2026 春季学期',
+  schoolYear: '2025-2026',
+  termType: SemesterTermType.spring,
   semesterStartDate: _defaultSemesterStartDate,
   weekCount: 16,
   createdAt: _defaultSemesterStartDate,
@@ -198,6 +230,20 @@ String _semesterIdForDate(DateTime date) {
 }
 
 String _semesterNameForDate(DateTime date) {
-  final season = date.month <= 7 ? '春季学期' : '秋季学期';
-  return '${date.year} $season';
+  return _semesterNameFor(_schoolYearForDate(date), _termTypeForDate(date));
+}
+
+String _semesterNameFor(String schoolYear, SemesterTermType termType) {
+  return '$schoolYear ${termType.label}';
+}
+
+String _schoolYearForDate(DateTime date) {
+  if (date.month >= 8) {
+    return '${date.year}-${date.year + 1}';
+  }
+  return '${date.year - 1}-${date.year}';
+}
+
+SemesterTermType _termTypeForDate(DateTime date) {
+  return date.month <= 7 ? SemesterTermType.spring : SemesterTermType.autumn;
 }

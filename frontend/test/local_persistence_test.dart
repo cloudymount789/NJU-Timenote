@@ -82,6 +82,12 @@ void main() {
     expect(settings.semesters.first.weekCount, 18);
     expect(settings.activeSemester.id, added.id);
     expect(settings.activeSemester.weekCount, 20);
+
+    await repos.settings.deleteSemesterTimetable(added.id);
+    repos = await RepositoryFactory.persistent(clock);
+    settings = await repos.settings.getSemesterSettings();
+    expect(settings.semesterById(added.id), isNull);
+    expect(settings.semesters, hasLength(1));
   });
 
   test(

@@ -36,6 +36,11 @@ class _SchedulePageState extends State<SchedulePage> {
     _scheduleFuture = _loadSchedule();
   }
 
+  Future<void> _refreshSchedule() async {
+    setState(_loadCourses);
+    await _scheduleFuture;
+  }
+
   Future<_ScheduleLoad> _loadSchedule() async {
     final repos = AppScope.repositoriesOf(context);
     final now = AppScope.clockOf(context).now();
@@ -115,39 +120,55 @@ class _SchedulePageState extends State<SchedulePage> {
             ),
             const SizedBox(height: 6),
             Expanded(
-              child: FutureBuilder<_ScheduleLoad>(
-                future: _scheduleFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState != ConnectionState.done) {
-                    return const AppCard(child: LoadingState());
-                  }
-                  if (snapshot.hasError) {
-                    return const AppCard(child: ErrorState(message: '无法读取课表。'));
-                  }
-                  final data = snapshot.data;
-                  final courses = data?.courses ?? const <Course>[];
-                  final semester = data?.semester ?? defaultSemesterTimetable;
-                  final todayWeek = semester.weekForDate(now);
-                  return TimetableView(
-                    courses: courses,
-                    week: _currentWeek,
-                    currentDate: now,
-                    semesterStartDate: semester.semesterStartDate,
-                    todayWeekday: _currentWeek == todayWeek
-                        ? now.weekday
-                        : null,
-                    onDeleteCourse: _deleteCourse,
-                    onOpenCourse: (course) async {
-                      await Navigator.of(context).pushNamed(
-                        AppRoutes.scheduleAddManual,
-                        arguments: CourseDetailRouteArgs(courseId: course.id),
-                      );
-                      if (mounted) {
-                        setState(_loadCourses);
-                      }
-                    },
-                  );
-                },
+              child: RefreshIndicator(
+                onRefresh: _refreshSchedule,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverFillRemaining(
+                      child: FutureBuilder<_ScheduleLoad>(
+                        future: _scheduleFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState !=
+                              ConnectionState.done) {
+                            return const AppCard(child: LoadingState());
+                          }
+                          if (snapshot.hasError) {
+                            return const AppCard(
+                              child: ErrorState(message: '无法读取课表。'),
+                            );
+                          }
+                          final data = snapshot.data;
+                          final courses = data?.courses ?? const <Course>[];
+                          final semester =
+                              data?.semester ?? defaultSemesterTimetable;
+                          final todayWeek = semester.weekForDate(now);
+                          return TimetableView(
+                            courses: courses,
+                            week: _currentWeek,
+                            currentDate: now,
+                            semesterStartDate: semester.semesterStartDate,
+                            todayWeekday: _currentWeek == todayWeek
+                                ? now.weekday
+                                : null,
+                            onDeleteCourse: _deleteCourse,
+                            onOpenCourse: (course) async {
+                              await Navigator.of(context).pushNamed(
+                                AppRoutes.scheduleAddManual,
+                                arguments: CourseDetailRouteArgs(
+                                  courseId: course.id,
+                                ),
+                              );
+                              if (mounted) {
+                                setState(_loadCourses);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -360,14 +381,7 @@ class TimetableView extends StatelessWidget {
   List<Widget> _buildCourseBlocks(double dayWidth) {
     final segments = <_CourseSegment>[];
     for (final course in courses) {
-      if (course.startPeriod <= 4 && course.endPeriod >= 5) {
-        segments.add(_CourseSegment(course, course.startPeriod, 4));
-        segments.add(_CourseSegment(course, 5, course.endPeriod));
-      } else {
-        segments.add(
-          _CourseSegment(course, course.startPeriod, course.endPeriod),
-        );
-      }
+      segments.addAll(_segmentsForCourse(course));
     }
 
     return segments.map((segment) {
@@ -405,6 +419,23 @@ class TimetableView extends StatelessWidget {
         ),
       );
     }).toList();
+  }
+
+  List<_CourseSegment> _segmentsForCourse(Course course) {
+    const segmentEnds = [4, 8, 12];
+    final segments = <_CourseSegment>[];
+    var start = course.startPeriod;
+    for (final boundary in segmentEnds) {
+      if (start > course.endPeriod) {
+        break;
+      }
+      if (start <= boundary) {
+        final end = math.min(course.endPeriod, boundary);
+        segments.add(_CourseSegment(course, start, end));
+        start = end + 1;
+      }
+    }
+    return segments;
   }
 
   List<DateTime> _weekDates(DateTime now, DateTime? semesterStart, int week) {

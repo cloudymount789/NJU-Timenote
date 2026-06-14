@@ -27,25 +27,32 @@ class LocalSettingsSource {
       periods: const [],
       lastSelectedSemesterId: defaultSemesterTimetable.id,
     );
-    await saveSemesterSettings(settings);
+    await writeSemesterSettings(settings);
     return settings;
   }
 
   Future<SemesterTimetable> addSemesterTimetable({
     DateTime? startDate,
     int weekCount = 16,
+    String? schoolYear,
+    SemesterTermType? termType,
   }) async {
     final settings = await getSemesterSettings();
     final now = clock.now();
     final date = startDate ?? DateTime(2026, 3, 2);
+    final semesterSchoolYear = schoolYear ?? _schoolYear(date);
+    final semesterTermType = termType ?? _termType(date);
     final semester = SemesterTimetable(
       id: 'semester-${now.microsecondsSinceEpoch}',
-      name: _semesterName(date),
+      name: _semesterName(semesterSchoolYear, semesterTermType),
+      schoolYear: semesterSchoolYear,
+      termType: semesterTermType,
       semesterStartDate: DateTime(date.year, date.month, date.day),
       weekCount: weekCount,
       createdAt: now,
     );
-    await saveSemesterSettings(
+    _validateSemester(semester, settings.semesters);
+    await writeSemesterSettings(
       settings.copyWith(
         semesters: [...settings.semesters, semester],
         lastSelectedSemesterId: semester.id,
@@ -62,9 +69,46 @@ class LocalSettingsSource {
     if (index == -1) {
       throw StateError('学期课表不存在');
     }
+    _validateSemester(semester, settings.semesters);
     final updated = [...settings.semesters];
     updated[index] = semester;
-    await saveSemesterSettings(settings.copyWith(semesters: updated));
+    await writeSemesterSettings(settings.copyWith(semesters: updated));
+  }
+
+  Future<SemesterTimetable> saveSemesterTimetable(
+    SemesterTimetable semester,
+  ) async {
+    final settings = await getSemesterSettings();
+    final exists = settings.semesterById(semester.id) != null;
+    if (exists) {
+      await updateSemesterTimetable(semester);
+      return semester;
+    }
+    _validateSemester(semester, settings.semesters);
+    await writeSemesterSettings(
+      settings.copyWith(
+        semesters: [...settings.semesters, semester],
+        lastSelectedSemesterId: semester.id,
+      ),
+    );
+    return semester;
+  }
+
+  Future<void> deleteSemesterTimetable(String semesterId) async {
+    final settings = await getSemesterSettings();
+    final updated = settings.semesters
+        .where((semester) => semester.id != semesterId)
+        .toList();
+    final nextSelected = settings.lastSelectedSemesterId == semesterId
+        ? (updated.isEmpty ? null : updated.last.id)
+        : settings.lastSelectedSemesterId;
+    await writeSemesterSettings(
+      SemesterSettings(
+        semesters: updated,
+        periods: settings.periods,
+        lastSelectedSemesterId: nextSelected,
+      ),
+    );
   }
 
   Future<void> setLastSelectedSemesterId(String semesterId) async {
@@ -72,18 +116,63 @@ class LocalSettingsSource {
     if (settings.semesterById(semesterId) == null) {
       return;
     }
-    await saveSemesterSettings(
+    await writeSemesterSettings(
       settings.copyWith(lastSelectedSemesterId: semesterId),
     );
   }
 
-  Future<void> saveSemesterSettings(SemesterSettings settings) async {
+  Future<void> writeSemesterSettings(SemesterSettings settings) async {
     _settings = settings;
     await store?.writeMap(LocalStoreKeys.settings, settings.toJson());
   }
 }
 
-String _semesterName(DateTime date) {
-  final season = date.month <= 7 ? '春季学期' : '秋季学期';
-  return '${date.year} $season';
+void _validateSemester(
+  SemesterTimetable semester,
+  List<SemesterTimetable> existing,
+) {
+  if (semester.weekCount < 1 || semester.weekCount > 25) {
+    throw ArgumentError.value(
+      semester.weekCount,
+      'weekCount',
+      '学期持续周数需在 1-25 周之间',
+    );
+  }
+  for (final other in existing) {
+    if (other.id == semester.id) {
+      continue;
+    }
+    if (_dateRangesOverlap(
+      semester.semesterStartDate,
+      semester.semesterEndDate,
+      other.semesterStartDate,
+      other.semesterEndDate,
+    )) {
+      throw StateError('学期日期范围不能重叠');
+    }
+  }
+}
+
+bool _dateRangesOverlap(
+  DateTime aStart,
+  DateTime aEnd,
+  DateTime bStart,
+  DateTime bEnd,
+) {
+  return !aEnd.isBefore(bStart) && !bEnd.isBefore(aStart);
+}
+
+String _semesterName(String schoolYear, SemesterTermType termType) {
+  return '$schoolYear ${termType.label}';
+}
+
+String _schoolYear(DateTime date) {
+  if (date.month >= 8) {
+    return '${date.year}-${date.year + 1}';
+  }
+  return '${date.year - 1}-${date.year}';
+}
+
+SemesterTermType _termType(DateTime date) {
+  return date.month <= 7 ? SemesterTermType.spring : SemesterTermType.autumn;
 }

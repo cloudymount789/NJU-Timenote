@@ -8,6 +8,7 @@ import '../features/schedule/add_schedule_page.dart';
 import '../features/schedule/manual_course_page.dart';
 import '../features/schedule/schedule_page.dart';
 import '../features/schedule/screenshot_course_page.dart';
+import '../features/settings/semester_pages.dart';
 import '../features/settings/settings_page.dart';
 import '../features/todo/todo_detail_page.dart';
 import '../features/todo/todo_list_page.dart';
@@ -19,6 +20,8 @@ class AppRoutes {
 
   static const home = '/';
   static const settings = '/settings';
+  static const semesters = '/settings/semesters';
+  static const semesterDetail = '/settings/semesters/detail';
   static const schedule = '/schedule';
   static const scheduleAdd = '/schedule/add';
   static const scheduleAddManual = '/schedule/add/manual';
@@ -36,6 +39,12 @@ class CourseDetailRouteArgs {
   const CourseDetailRouteArgs({this.courseId});
 
   final String? courseId;
+}
+
+class SemesterDetailRouteArgs {
+  const SemesterDetailRouteArgs({this.semesterId});
+
+  final String? semesterId;
 }
 
 class TodoDetailRouteArgs {
@@ -67,6 +76,13 @@ class AppRouter {
         page = const HomePage();
       case AppRoutes.settings:
         page = const SettingsPage();
+      case AppRoutes.semesters:
+        page = const SemesterListPage();
+      case AppRoutes.semesterDetail:
+        final args = settings.arguments;
+        page = SemesterDetailPage(
+          semesterId: args is SemesterDetailRouteArgs ? args.semesterId : null,
+        );
       case AppRoutes.schedule:
         page = const SchedulePage();
       case AppRoutes.scheduleAdd:
