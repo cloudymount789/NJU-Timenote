@@ -25,7 +25,7 @@
 | 功能/产物 | 状态 | 说明 |
 |---|---:|---|
 | Flutter 工程 | done | Flutter Android 工程已建立在 `frontend/`。 |
-| App 页面功能 | done | 首页、课表、待办核心、搜索、下一件事推荐、大目标拆分和设置最小入口均已有 Flutter 页面闭环；数据层当前为内存态本地 source，未做设备持久化。 |
+| App 页面功能 | done | 首页、课表、待办核心、搜索、下一件事推荐、大目标拆分和设置最小入口均已有 Flutter 页面闭环；数据层已通过本地 JSON 快照做设备持久化。 |
 
 ## 3. MCP 阶段需要实现
 
@@ -36,7 +36,7 @@
 | Flutter Android 项目 | done | 首发 Android，手机竖屏优先。 |
 | 路由系统 | done | 支持首页、课表、待办、搜索、详情、创建、推荐等页面跳转。 |
 | 主题与设计 token | done | 颜色、字号、圆角、阴影、思源宋体统一配置；暗色模式先预留不实现。 |
-| 本地数据层 | done | 课程、待办、标签、设置已有内存态本地 source；设备持久化尚未实现。 |
+| 本地数据层 | done | 课程、待办、标签、设置通过 repository 访问本地 source，App 运行入口使用 `shared_preferences` JSON 快照做设备持久化；纯内存 source 保留给测试。 |
 | Repository 抽象 | done | UI 不直接访问本地数据库或未来后端。 |
 | 代码地图 | done | 已新增并持续维护 `docs/code-map.md`。 |
 | 手动测试清单 | done | 已新增并持续维护 `docs/manual-test-checklist.md`。 |

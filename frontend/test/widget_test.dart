@@ -15,7 +15,9 @@ import 'package:nju_timenote/features/todo/todo_list_page.dart';
 
 void main() {
   testWidgets('starts on home and opens settings', (tester) async {
-    await tester.pumpWidget(const TimenoteApp());
+    await tester.pumpWidget(
+      TimenoteApp(repositories: RepositoryFactory.local()),
+    );
     await tester.pumpAndSettle();
 
     expect(find.textContaining('今天也要加油啊'), findsOneWidget);
@@ -32,7 +34,9 @@ void main() {
   });
 
   testWidgets('home can open create todo sheet', (tester) async {
-    await tester.pumpWidget(const TimenoteApp());
+    await tester.pumpWidget(
+      TimenoteApp(repositories: RepositoryFactory.local()),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('智能一句话添加待办...'));
@@ -43,7 +47,9 @@ void main() {
   });
 
   testWidgets('deadline card opens the default todo list', (tester) async {
-    await tester.pumpWidget(const TimenoteApp());
+    await tester.pumpWidget(
+      TimenoteApp(repositories: RepositoryFactory.local()),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('DDL 提醒'));

@@ -1,5 +1,6 @@
 import '../sources/local/local_course_source.dart';
 import '../sources/local/local_goal_split_source.dart';
+import '../sources/local/local_json_store.dart';
 import '../sources/local/local_recommendation_source.dart';
 import '../sources/local/local_settings_source.dart';
 import '../sources/local/local_tag_source.dart';
@@ -18,19 +19,37 @@ import '../models/goal_split.dart';
 import '../models/recommendation.dart';
 import '../models/settings.dart';
 import '../models/todo.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RepositoryFactory {
   const RepositoryFactory._();
 
   static AppRepositories local([AppClock clock = const AppClock()]) {
-    final tagSource = LocalTagSource();
-    final todoSource = LocalTodoSource(tagSource, clock: clock);
+    return _build(clock: clock);
+  }
+
+  static Future<AppRepositories> persistent([
+    AppClock clock = const AppClock(),
+  ]) async {
+    final preferences = await SharedPreferences.getInstance();
+    return _build(clock: clock, store: LocalJsonStore(preferences));
+  }
+
+  static AppRepositories _build({
+    required AppClock clock,
+    LocalJsonStore? store,
+  }) {
+    final tagSource = LocalTagSource(store: store);
+    final todoSource = LocalTodoSource(tagSource, clock: clock, store: store);
     final changes = DataRefreshNotifier();
     return AppRepositories(
-      courses: LocalCourseRepository(LocalCourseSource(clock: clock), changes),
+      courses: LocalCourseRepository(
+        LocalCourseSource(clock: clock, store: store),
+        changes,
+      ),
       todos: LocalTodoRepository(todoSource, changes),
       tags: LocalTagRepository(tagSource),
-      settings: LocalSettingsRepository(LocalSettingsSource()),
+      settings: LocalSettingsRepository(LocalSettingsSource(store: store)),
       recommendations: LocalRecommendationRepository(
         LocalRecommendationSource(todoSource),
       ),

@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../core/time/app_clock.dart';
 import '../data/repositories/app_repositories.dart';
-import '../data/repositories/repository_factory.dart';
 import 'router.dart';
 import 'theme/app_theme.dart';
 
 class TimenoteApp extends StatelessWidget {
-  const TimenoteApp({super.key});
+  const TimenoteApp({required this.repositories, super.key});
+
+  final AppRepositories repositories;
 
   @override
   Widget build(BuildContext context) {
     return AppScope(
       clock: const AppClock(),
-      repositories: RepositoryFactory.local(const AppClock()),
+      repositories: repositories,
       child: MaterialApp(
         title: 'NJU Timenote',
         debugShowCheckedModeBanner: false,

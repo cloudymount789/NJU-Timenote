@@ -1,5 +1,6 @@
 import '../../../core/time/app_clock.dart';
 import '../../models/todo.dart';
+import 'local_json_store.dart';
 import 'local_tag_source.dart';
 
 class LocalTodoSource {
@@ -7,10 +8,14 @@ class LocalTodoSource {
     this._tagSource, {
     this.clock = const AppClock(),
     List<TodoItem>? initial,
-  }) : _items = [...?initial];
+    this.store,
+  }) : _items = [...?initial] {
+    _restore();
+  }
 
   final LocalTagSource _tagSource;
   final AppClock clock;
+  final LocalJsonStore? store;
   final List<TodoItem> _items;
   final List<String> _manualOrder = <String>[];
   final Map<String, _RepeatCompletion> _repeatCompletions = {};
@@ -21,7 +26,7 @@ class LocalTodoSource {
     TodoFilter filter = const TodoFilter(),
   ]) async {
     final reference = filter.date ?? clock.now();
-    _refreshCompletionState(reference);
+    await _refreshCompletionState(reference);
     final todos =
         _items
             .map((item) => _projectForReference(item, reference))
@@ -33,14 +38,14 @@ class LocalTodoSource {
 
   Future<TodoItem?> getTodoById(String todoId) async {
     final now = clock.now();
-    _refreshCompletionState(now);
+    await _refreshCompletionState(now);
     final item = _items.where((item) => item.id == todoId).firstOrNull;
     return item == null ? null : _projectForReference(item, now);
   }
 
   Future<List<TodoItem>> searchTodos(String query) async {
     final now = clock.now();
-    _refreshCompletionState(now);
+    await _refreshCompletionState(now);
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) {
       return const [];
@@ -88,6 +93,7 @@ class LocalTodoSource {
     if (_sortMode != _TodoSortMode.defaultOrder) {
       _manualOrder.add(todo.id);
     }
+    await _persist();
     return todo.withAutoCompletion(now);
   }
 
@@ -144,6 +150,7 @@ class LocalTodoSource {
     if (result.isRecurring && patch.status.isSet) {
       _setRepeatCompletion(result, now, patch.status.value == TodoStatus.done);
     }
+    await _persist();
     return _projectForReference(result, now);
   }
 
@@ -151,6 +158,7 @@ class LocalTodoSource {
     _items.removeAt(_indexOf(todoId));
     _manualOrder.remove(todoId);
     _repeatCompletions.removeWhere((key, _) => key.split('|').first == todoId);
+    await _persist();
   }
 
   Future<TodoItem> completeTodo(String todoId) async {
@@ -165,6 +173,7 @@ class LocalTodoSource {
       final template = _items[_indexOf(todoId)];
       final now = clock.now();
       _setRepeatCompletion(template, now, true);
+      await _persist();
       return _projectForReference(template, now);
     }
     return updateTodo(
@@ -185,6 +194,7 @@ class LocalTodoSource {
       final template = _items[_indexOf(todoId)];
       final now = clock.now();
       _setRepeatCompletion(template, now, false);
+      await _persist();
       return _projectForReference(template, now);
     }
     return updateTodo(
@@ -210,6 +220,7 @@ class LocalTodoSource {
     _repeatCompletions.removeWhere(
       (key, _) => ids.contains(key.split('|').first),
     );
+    await _persist();
   }
 
   Future<List<TodoItem>> batchComplete(List<String> todoIds) async {
@@ -230,15 +241,17 @@ class LocalTodoSource {
     _manualOrder
       ..removeWhere(visible.contains)
       ..insertAll(0, orderedTodoIds);
+    await _persist();
   }
 
   Future<void> smartSortTodos() async {
-    _refreshCompletionState(clock.now());
+    await _refreshCompletionState(clock.now());
     final sorted = [..._items]..sort(compareTodosByPriority);
     _sortMode = _TodoSortMode.smart;
     _manualOrder
       ..clear()
       ..addAll(sorted.map((todo) => todo.id));
+    await _persist();
   }
 
   int _compareTodos(TodoItem a, TodoItem b) {
@@ -259,13 +272,16 @@ class LocalTodoSource {
     return compareTodos(a, b);
   }
 
-  void _refreshCompletionState(DateTime reference) {
+  Future<void> _refreshCompletionState(DateTime reference) async {
     final now = clock.now();
+    var changed = false;
+    final beforeCompletionCount = _repeatCompletions.length;
     _repeatCompletions.removeWhere(
       (_, completion) => completion.completedAt.isBefore(
         now.subtract(const Duration(days: 7)),
       ),
     );
+    changed = _repeatCompletions.length != beforeCompletionCount;
     for (var index = 0; index < _items.length; index += 1) {
       final item = _items[index];
       if (item.isRecurring) {
@@ -273,11 +289,19 @@ class LocalTodoSource {
         if (projected.kind == TodoKind.duration &&
             projected.endAt != null &&
             !projected.endAt!.isAfter(now)) {
-          _setRepeatCompletion(item, reference, true);
+          changed = _setRepeatCompletion(item, reference, true) || changed;
         }
       } else {
-        _items[index] = item.withAutoCompletion(now);
+        final refreshed = item.withAutoCompletion(now);
+        if (refreshed.status != item.status ||
+            refreshed.updatedAt != item.updatedAt) {
+          _items[index] = refreshed;
+          changed = true;
+        }
       }
+    }
+    if (changed) {
+      await _persist();
     }
   }
 
@@ -344,13 +368,15 @@ class LocalTodoSource {
     return _repeatCompletions.containsKey(_repeatKey(item.id, occurrenceDate));
   }
 
-  void _setRepeatCompletion(TodoItem item, DateTime reference, bool done) {
+  bool _setRepeatCompletion(TodoItem item, DateTime reference, bool done) {
     final occurrenceDate = _occurrenceDate(item, reference);
     final key = _repeatKey(item.id, occurrenceDate);
     if (done) {
+      final existed = _repeatCompletions.containsKey(key);
       _repeatCompletions[key] = _RepeatCompletion(clock.now());
+      return !existed;
     } else {
-      _repeatCompletions.remove(key);
+      return _repeatCompletions.remove(key) != null;
     }
   }
 
@@ -361,6 +387,52 @@ class LocalTodoSource {
     }
     return index;
   }
+
+  void _restore() {
+    final data = store?.readMap(LocalStoreKeys.todos);
+    if (data == null || data.isEmpty) {
+      return;
+    }
+    final items = data['items'] as List? ?? const [];
+    _items
+      ..clear()
+      ..addAll(items.map((item) => TodoItem.fromJson((item as Map).cast())));
+    _manualOrder
+      ..clear()
+      ..addAll((data['manualOrder'] as List? ?? const []).cast<String>());
+    final completions = data['repeatCompletions'] as Map? ?? const {};
+    _repeatCompletions
+      ..clear()
+      ..addAll(
+        completions.map(
+          (key, value) => MapEntry(
+            key as String,
+            _RepeatCompletion.fromJson((value as Map).cast()),
+          ),
+        ),
+      );
+    final sortModeName = data['sortMode'] as String?;
+    if (sortModeName != null) {
+      _sortMode = _TodoSortMode.values.byName(sortModeName);
+    }
+    _counter = data['counter'] as int? ?? _items.length;
+  }
+
+  Future<void> _persist() async {
+    final localStore = store;
+    if (localStore == null) {
+      return;
+    }
+    await localStore.writeMap(LocalStoreKeys.todos, {
+      'items': _items.map((item) => item.toJson()).toList(),
+      'manualOrder': _manualOrder,
+      'repeatCompletions': _repeatCompletions.map(
+        (key, value) => MapEntry(key, value.toJson()),
+      ),
+      'sortMode': _sortMode.name,
+      'counter': _counter,
+    });
+  }
 }
 
 enum _TodoSortMode { defaultOrder, manual, smart }
@@ -369,6 +441,14 @@ class _RepeatCompletion {
   const _RepeatCompletion(this.completedAt);
 
   final DateTime completedAt;
+
+  Map<String, Object?> toJson() {
+    return {'completedAt': completedAt.toIso8601String()};
+  }
+
+  factory _RepeatCompletion.fromJson(Map<String, Object?> json) {
+    return _RepeatCompletion(DateTime.parse(json['completedAt']! as String));
+  }
 }
 
 DateTime _startOfWeek(DateTime value) {

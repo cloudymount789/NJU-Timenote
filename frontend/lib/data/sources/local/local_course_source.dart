@@ -1,10 +1,14 @@
 import '../../../core/time/app_clock.dart';
 import '../../models/course.dart';
+import 'local_json_store.dart';
 
 class LocalCourseSource {
-  LocalCourseSource({this.clock = const AppClock()});
+  LocalCourseSource({this.clock = const AppClock(), this.store}) {
+    _restore();
+  }
 
   final AppClock clock;
+  final LocalJsonStore? store;
   final List<Course> _courses = <Course>[];
   final Map<String, String> _colorByName = <String, String>{};
 
@@ -57,6 +61,7 @@ class LocalCourseSource {
       updatedAt: now,
     );
     _courses.add(course);
+    await _persist();
     return course;
   }
 
@@ -82,11 +87,13 @@ class LocalCourseSource {
       updatedAt: clock.now(),
     );
     _courses[index] = updated;
+    await _persist();
     return updated;
   }
 
   Future<void> deleteCourse(String courseId) async {
     _courses.removeWhere((course) => course.id == courseId);
+    await _persist();
   }
 
   String colorKeyForCourseName(String name) {
@@ -101,6 +108,34 @@ class LocalCourseSource {
         (value, unit) => value + unit,
       );
       return colorKeys[hash % colorKeys.length];
+    });
+  }
+
+  void _restore() {
+    final data = store?.readMap(LocalStoreKeys.courses);
+    if (data == null || data.isEmpty) {
+      return;
+    }
+    final courses = data['courses'] as List? ?? const [];
+    _courses
+      ..clear()
+      ..addAll(
+        courses.map((course) => Course.fromJson((course as Map).cast())),
+      );
+    final colorByName = data['colorByName'] as Map? ?? const {};
+    _colorByName
+      ..clear()
+      ..addAll(colorByName.cast<String, String>());
+  }
+
+  Future<void> _persist() async {
+    final localStore = store;
+    if (localStore == null) {
+      return;
+    }
+    await localStore.writeMap(LocalStoreKeys.courses, {
+      'courses': _courses.map((course) => course.toJson()).toList(),
+      'colorByName': _colorByName,
     });
   }
 }
