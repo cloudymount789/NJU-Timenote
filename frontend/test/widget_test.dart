@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:nju_timenote/app/app.dart';
 import 'package:nju_timenote/app/router.dart';
 import 'package:nju_timenote/core/time/app_clock.dart';
+import 'package:nju_timenote/core/widgets/app_card.dart';
 import 'package:nju_timenote/data/models/course.dart';
 import 'package:nju_timenote/data/models/recommendation.dart';
 import 'package:nju_timenote/data/models/settings.dart';
@@ -270,6 +271,28 @@ void main() {
 
     expect(find.text('我的2025-2026学年第二学期课表'), findsOneWidget);
     expect(find.text('课表名称'), findsNothing);
+  });
+
+  testWidgets('semester list empty state card fills available width', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 780));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final repositories = RepositoryFactory.local();
+    await repositories.settings.deleteSemesterTimetable('semester-2026-03-02');
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        home: const SemesterListPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('暂无学期课表'), findsOneWidget);
+    final cardRect = tester.getRect(find.byType(AppCard));
+    expect(cardRect.width, greaterThan(330));
   });
 
   testWidgets(

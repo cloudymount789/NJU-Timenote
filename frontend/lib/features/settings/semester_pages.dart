@@ -105,20 +105,23 @@ class _SemesterListPageState extends State<SemesterListPage> {
                     );
                   if (semesters.isEmpty) {
                     return AppCard(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const EmptyState(
-                            title: '暂无学期课表',
-                            message: '点击右上角加号添加学期。',
-                            icon: Icons.calendar_month_outlined,
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton(
-                            onPressed: () => _openDetail(),
-                            child: const Text('添加学期'),
-                          ),
-                        ],
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const EmptyState(
+                              title: '暂无学期课表',
+                              message: '点击右上角加号添加学期。',
+                              icon: Icons.calendar_month_outlined,
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton(
+                              onPressed: () => _openDetail(),
+                              child: const Text('添加学期'),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   }
