@@ -338,7 +338,7 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 当前阶段（第一阶段 = 本地持久化），后端 API 还不承载真实的 CRUD 流量。前端和后端可以完全并行：
 
 - **协作者重写前端**：只要遵守本文档的模型 + API 格式，后端可以无缝对接。建议先用硬编码数据做 UI，待后端 API 就绪后替换 HTTP 层。
-- **你开发后端**：从第二阶段（截图识别）开始，提供真实的 API endpoint。API 契约以本文档和 `docs/backend-api.md` 为准。
+- **你开发后端**：从第二阶段（截图识别）开始，提供真实的 API endpoint。当前 API 契约以本文档为准；如后续新增 `docs/backend-api.md`，需要与本文档同步后再共同作为依据。
 
 如果协作者发现 API 设计有问题（字段缺失、格式不合理），应该**先修改本文档**，双方确认后各自同步。
 
@@ -348,9 +348,10 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 
 本附录只记录当前 Flutter 前端实现现状与上文契约/后端约束不一致或尚未对齐的地方，不改变上文契约本身。
 
-1. **数据存储仍是内存态，不是设备持久化**
+1. **设备本地持久化已完成，但尚不是可迁移数据库**
    - 契约原则要求课程、待办、标签、设置默认保存在用户设备上。
-   - 当前 `frontend/lib/data/sources/local/` 下的课程、待办、标签、设置 source 均为内存实现，App 重启后数据不会保留。
+   - 当前 App 运行入口使用 `RepositoryFactory.persistent()`，通过 `shared_preferences` JSON 快照保存课程、待办、标签、设置、课程颜色映射、排序状态和重复完成记录；纯内存 source 仅保留给测试。
+   - 该实现满足当前本地优先阶段，但未来若字段结构变化较大，需要补数据版本和迁移策略。
 
 2. **后端 HTTP API 尚未接入**
    - 契约定义了 `/api/v1` 下的课程、待办、标签、设置、服务能力等 HTTP API。
@@ -366,7 +367,7 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 
 5. **大目标拆分未实现显式事务/回滚机制**
    - 契约要求所有子目标在一个事务中创建，任意一条失败则全部回滚。
-   - 当前 `LocalGoalSplitSource` 会先做基础校验，再逐条调用 `createTodo`；内存实现中没有显式事务或失败回滚机制。
+   - 当前 `LocalGoalSplitSource` 会先做基础校验，再逐条调用 `createTodo`；本地 JSON 快照实现中没有显式事务或失败回滚机制。
 
 6. **TodoFilter 缺少 `onlyDeadline` 字段**
    - 契约 2.5 / 3.3 包含 `onlyDeadline=true/false` 查询参数。
@@ -386,7 +387,7 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
 
 10. **设置、备份、导出和服务能力接口未完整实现**
     - 契约定义了学期、节次、备份、导出、健康检查、服务能力等接口。
-    - 当前 `LocalSettingsSource` 仅返回固定 `semesterStartDate: 2026-09-01` 和空 `periods`；未实现节次设置持久化、PUT 修改、备份、导出、`/health`、`/api/v1/capabilities` 等能力。
+    - 当前 `LocalSettingsSource` 会读取/写入本地设置快照；首次使用时返回固定 `semesterStartDate: 2026-09-01` 和空 `periods`。课表显示使用前端内置默认节次时间；未实现可编辑节次设置、备份、导出、`/health`、`/api/v1/capabilities` 等能力。
 
 11. **推荐逻辑为本地规则，不调用契约中的推荐 API**
     - 契约定义 `POST /api/v1/todos/recommendations`。

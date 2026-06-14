@@ -7,7 +7,7 @@ NJU Timenote 是一个 Flutter 前端项目。前端工程集中放在 `frontend
 ## 目录
 
 - `frontend/`：Flutter Android 前端工程。
-- `docs/`：协作规约、功能范围、路线图、接口契约、代码地图和手测清单。
+- `docs/`：协作规约、功能范围、当前前后端工作边界、路线图、接口契约、代码地图和手测清单。
 - `UI/nju-timenote.pen`：Pencil 高保真原型。
 
 ## 当前能力边界
