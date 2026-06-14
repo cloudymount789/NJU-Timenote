@@ -71,7 +71,7 @@ class _HomePageState extends State<HomePage> {
     return _HomeData(
       nextCourse: results[0] as Course?,
       nextTodo: results[1] as TodoItem?,
-      nextDeadline: deadlines.firstOrNull,
+      deadlines: deadlines.take(2).toList(),
     );
   }
 
@@ -190,7 +190,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                             SizedBox(height: cardGap),
                             _DeadlineCard(
-                              deadline: data?.nextDeadline,
+                              deadlines: data?.deadlines ?? const [],
                               compact: compact,
                               isLoading: loading,
                               hasError: snapshot.hasError,
@@ -352,14 +352,14 @@ class _CompactDeadlineEmptyState extends StatelessWidget {
 
 class _DeadlineCard extends StatelessWidget {
   const _DeadlineCard({
-    required this.deadline,
+    required this.deadlines,
     required this.compact,
     required this.isLoading,
     required this.hasError,
     required this.onTap,
   });
 
-  final TodoItem? deadline;
+  final List<TodoItem> deadlines;
   final bool compact;
   final bool isLoading;
   final bool hasError;
@@ -405,9 +405,9 @@ class _DeadlineCard extends StatelessWidget {
                 ? const LoadingState()
                 : hasError
                 ? const ErrorState(message: '无法读取截止提醒。')
-                : deadline == null
+                : deadlines.isEmpty
                 ? _CompactDeadlineEmptyState(compact: compact)
-                : _CompactDeadlineState(todo: deadline!, compact: compact),
+                : _CompactDeadlineList(todos: deadlines, compact: compact),
           ),
         ],
       ),
@@ -415,8 +415,28 @@ class _DeadlineCard extends StatelessWidget {
   }
 }
 
-class _CompactDeadlineState extends StatelessWidget {
-  const _CompactDeadlineState({required this.todo, required this.compact});
+class _CompactDeadlineList extends StatelessWidget {
+  const _CompactDeadlineList({required this.todos, required this.compact});
+
+  final List<TodoItem> todos;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < todos.length; index++) ...[
+          _CompactDeadlineRow(todo: todos[index], compact: compact),
+          if (index != todos.length - 1) SizedBox(height: compact ? 8 : 10),
+        ],
+      ],
+    );
+  }
+}
+
+class _CompactDeadlineRow extends StatelessWidget {
+  const _CompactDeadlineRow({required this.todo, required this.compact});
 
   final TodoItem todo;
   final bool compact;
@@ -427,28 +447,28 @@ class _CompactDeadlineState extends StatelessWidget {
       children: [
         Icon(
           Icons.timer_outlined,
-          size: compact ? 28 : 32,
+          size: compact ? 22 : 24,
           color: AppColors.primary,
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Text(
-                todo.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.ink,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  todo.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              SizedBox(height: compact ? 3 : 5),
+              const SizedBox(width: 8),
               Text(
-                'DDL: ${_dateTimeText(todo.deadlineAt)}',
+                _dateTimeText(todo.deadlineAt),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(color: AppColors.muted, fontSize: 13),
@@ -465,12 +485,12 @@ class _HomeData {
   const _HomeData({
     required this.nextCourse,
     required this.nextTodo,
-    required this.nextDeadline,
+    required this.deadlines,
   });
 
   final Course? nextCourse;
   final TodoItem? nextTodo;
-  final TodoItem? nextDeadline;
+  final List<TodoItem> deadlines;
 }
 
 String _courseMessage(Course course) {

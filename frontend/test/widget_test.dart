@@ -189,6 +189,20 @@ void main() {
         deadlineAt: DateTime(2026, 6, 13, 23, 59),
       ),
     );
+    await repositories.todos.createTodo(
+      TodoDraft(
+        title: '缴费确认',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 14, 12),
+      ),
+    );
+    await repositories.todos.createTodo(
+      TodoDraft(
+        title: '下周申请',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 20, 12),
+      ),
+    );
 
     await tester.pumpWidget(
       _ScopedTestApp(
@@ -202,6 +216,8 @@ void main() {
     expect(find.text('数据结构'), findsOneWidget);
     expect(find.text('预习课程'), findsOneWidget);
     expect(find.text('提交实验报告'), findsOneWidget);
+    expect(find.text('缴费确认'), findsOneWidget);
+    expect(find.text('下周申请'), findsNothing);
   });
 
   testWidgets('schedule opens on computed semester week', (tester) async {
