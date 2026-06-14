@@ -89,6 +89,7 @@ class SemesterTimetable {
     required this.semesterStartDate,
     required this.weekCount,
     required this.createdAt,
+    required this.updatedAt,
   });
 
   final String id;
@@ -98,8 +99,9 @@ class SemesterTimetable {
   final DateTime semesterStartDate;
   final int weekCount;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
-  String get displayName => '$schoolYear ${termType.label}';
+  String get displayName => name;
 
   DateTime get semesterEndDate {
     return semesterStartDate.add(Duration(days: weekCount * 7 - 1));
@@ -128,6 +130,7 @@ class SemesterTimetable {
       'semesterStartDate': _dateOnly(semesterStartDate),
       'weekCount': weekCount,
       'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
@@ -140,7 +143,9 @@ class SemesterTimetable {
         json['schoolYear'] as String? ?? _schoolYearForDate(startDate);
     return SemesterTimetable(
       id: json['id'] as String? ?? _semesterIdForDate(startDate),
-      name: json['name'] as String? ?? _semesterNameFor(schoolYear, termType),
+      name:
+          json['name'] as String? ??
+          suggestedSemesterName(schoolYear, termType),
       schoolYear: schoolYear,
       termType: termType,
       semesterStartDate: startDate,
@@ -148,6 +153,11 @@ class SemesterTimetable {
       createdAt: json['createdAt'] is String
           ? DateTime.parse(json['createdAt']! as String)
           : startDate,
+      updatedAt: json['updatedAt'] is String
+          ? DateTime.parse(json['updatedAt']! as String)
+          : (json['createdAt'] is String
+                ? DateTime.parse(json['createdAt']! as String)
+                : startDate),
     );
   }
 
@@ -159,17 +169,19 @@ class SemesterTimetable {
     DateTime? semesterStartDate,
     int? weekCount,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     final nextSchoolYear = schoolYear ?? this.schoolYear;
     final nextTermType = termType ?? this.termType;
     return SemesterTimetable(
       id: id ?? this.id,
-      name: name ?? _semesterNameFor(nextSchoolYear, nextTermType),
+      name: name ?? suggestedSemesterName(nextSchoolYear, nextTermType),
       schoolYear: nextSchoolYear,
       termType: nextTermType,
       semesterStartDate: semesterStartDate ?? this.semesterStartDate,
       weekCount: weekCount ?? this.weekCount,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }
@@ -215,12 +227,13 @@ String _dateOnly(DateTime value) {
 
 final defaultSemesterTimetable = SemesterTimetable(
   id: 'semester-2026-03-02',
-  name: '2026 春季学期',
+  name: '2025-2026学年第二学期',
   schoolYear: '2025-2026',
   termType: SemesterTermType.spring,
   semesterStartDate: _defaultSemesterStartDate,
   weekCount: 16,
   createdAt: _defaultSemesterStartDate,
+  updatedAt: _defaultSemesterStartDate,
 );
 
 final _defaultSemesterStartDate = DateTime(2026, 3, 2);
@@ -230,11 +243,18 @@ String _semesterIdForDate(DateTime date) {
 }
 
 String _semesterNameForDate(DateTime date) {
-  return _semesterNameFor(_schoolYearForDate(date), _termTypeForDate(date));
+  return suggestedSemesterName(
+    _schoolYearForDate(date),
+    _termTypeForDate(date),
+  );
 }
 
-String _semesterNameFor(String schoolYear, SemesterTermType termType) {
-  return '$schoolYear ${termType.label}';
+String suggestedSemesterName(String schoolYear, SemesterTermType termType) {
+  final termName = switch (termType) {
+    SemesterTermType.autumn => '第一学期',
+    SemesterTermType.spring => '第二学期',
+  };
+  return '$schoolYear学年$termName';
 }
 
 String _schoolYearForDate(DateTime date) {

@@ -23,6 +23,7 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   int _currentWeek = 1;
+  String? _selectedSemesterId;
   late Future<_ScheduleLoad> _scheduleFuture;
   var _didSetInitialWeek = false;
 
@@ -45,7 +46,11 @@ class _SchedulePageState extends State<SchedulePage> {
     final repos = AppScope.repositoriesOf(context);
     final now = AppScope.clockOf(context).now();
     final settings = await repos.settings.getSemesterSettings();
-    final semester = settings.activeSemester;
+    var semester = _selectedSemesterId == null
+        ? settings.activeSemester
+        : settings.semesterById(_selectedSemesterId!) ??
+              settings.activeSemester;
+    _selectedSemesterId = semester.id;
     if (!_didSetInitialWeek) {
       final computedWeek = semester.weekForDate(now);
       final initialWeek = computedWeek.clamp(0, 25).toInt();
@@ -63,7 +68,27 @@ class _SchedulePageState extends State<SchedulePage> {
       _currentWeek,
       semesterId: semester.id,
     );
-    return _ScheduleLoad(semester: semester, courses: courses);
+    return _ScheduleLoad(
+      semester: semester,
+      semesters: settings.semesters,
+      courses: courses,
+    );
+  }
+
+  Future<void> _changeSemester(SemesterTimetable semester) async {
+    await AppScope.repositoriesOf(
+      context,
+    ).settings.setLastSelectedSemesterId(semester.id);
+    if (!mounted) {
+      return;
+    }
+    final now = AppScope.clockOf(context).now();
+    setState(() {
+      _selectedSemesterId = semester.id;
+      _currentWeek = semester.weekForDate(now).clamp(0, 25).toInt();
+      _didSetInitialWeek = true;
+      _loadCourses();
+    });
   }
 
   void _changeWeek(int delta) {
@@ -78,20 +103,58 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Future<void> _deleteCourse(Course course) async {
+    final scope = await _pickDeleteScope();
+    if (scope == null || !mounted) {
+      return;
+    }
     final confirmed = await showAppConfirmDialog(
       context: context,
-      title: '删除课程？',
-      message: '删除后无法恢复。',
+      title: scope == _CourseDeleteScope.once ? '删除这一次课？' : '删除所有课程？',
+      message: scope == _CourseDeleteScope.once
+          ? '只会隐藏第 $_currentWeek 周的这一次课，其他周不受影响。'
+          : '删除后这门课的所有周都不再显示。',
       confirmText: '删除',
     );
     if (confirmed != true || !mounted) {
       return;
     }
-    await AppScope.repositoriesOf(context).courses.deleteCourse(course.id);
+    final repository = AppScope.repositoriesOf(context).courses;
+    if (scope == _CourseDeleteScope.once) {
+      await repository.cancelCourseForWeek(course.id, _currentWeek);
+    } else {
+      await repository.deleteCourse(course.id);
+    }
     if (!mounted) {
       return;
     }
     setState(_loadCourses);
+  }
+
+  Future<_CourseDeleteScope?> _pickDeleteScope() {
+    return showModalBottomSheet<_CourseDeleteScope>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.event_busy_outlined),
+                title: const Text('仅删除这一次课'),
+                subtitle: Text('第 $_currentWeek 周不再显示'),
+                onTap: () => Navigator.of(context).pop(_CourseDeleteScope.once),
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('删除所有课程'),
+                subtitle: const Text('删除整门课的课程规则'),
+                onTap: () => Navigator.of(context).pop(_CourseDeleteScope.all),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -106,7 +169,12 @@ class _SchedulePageState extends State<SchedulePage> {
               onBack: () =>
                   Navigator.of(context).popUntil((route) => route.isFirst),
               onAdd: () async {
-                await Navigator.of(context).pushNamed(AppRoutes.scheduleAdd);
+                await Navigator.of(context).pushNamed(
+                  AppRoutes.scheduleAdd,
+                  arguments: CourseDetailRouteArgs(
+                    semesterId: _selectedSemesterId,
+                  ),
+                );
                 if (mounted) {
                   setState(_loadCourses);
                 }
@@ -143,26 +211,40 @@ class _SchedulePageState extends State<SchedulePage> {
                           final semester =
                               data?.semester ?? defaultSemesterTimetable;
                           final todayWeek = semester.weekForDate(now);
-                          return TimetableView(
-                            courses: courses,
-                            week: _currentWeek,
-                            currentDate: now,
-                            semesterStartDate: semester.semesterStartDate,
-                            todayWeekday: _currentWeek == todayWeek
-                                ? now.weekday
-                                : null,
-                            onDeleteCourse: _deleteCourse,
-                            onOpenCourse: (course) async {
-                              await Navigator.of(context).pushNamed(
-                                AppRoutes.scheduleAddManual,
-                                arguments: CourseDetailRouteArgs(
-                                  courseId: course.id,
+                          return Column(
+                            children: [
+                              _SemesterSwitcher(
+                                semesters:
+                                    data?.semesters ??
+                                    [defaultSemesterTimetable],
+                                selectedSemester: semester,
+                                onChanged: _changeSemester,
+                              ),
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: TimetableView(
+                                  courses: courses,
+                                  week: _currentWeek,
+                                  currentDate: now,
+                                  semesterStartDate: semester.semesterStartDate,
+                                  todayWeekday: _currentWeek == todayWeek
+                                      ? now.weekday
+                                      : null,
+                                  onDeleteCourse: _deleteCourse,
+                                  onOpenCourse: (course) async {
+                                    await Navigator.of(context).pushNamed(
+                                      AppRoutes.scheduleAddManual,
+                                      arguments: CourseDetailRouteArgs(
+                                        courseId: course.id,
+                                      ),
+                                    );
+                                    if (mounted) {
+                                      setState(_loadCourses);
+                                    }
+                                  },
                                 ),
-                              );
-                              if (mounted) {
-                                setState(_loadCourses);
-                              }
-                            },
+                              ),
+                            ],
                           );
                         },
                       ),
@@ -179,11 +261,18 @@ class _SchedulePageState extends State<SchedulePage> {
 }
 
 class _ScheduleLoad {
-  const _ScheduleLoad({required this.semester, required this.courses});
+  const _ScheduleLoad({
+    required this.semester,
+    required this.semesters,
+    required this.courses,
+  });
 
   final SemesterTimetable semester;
+  final List<SemesterTimetable> semesters;
   final List<Course> courses;
 }
+
+enum _CourseDeleteScope { once, all }
 
 class _ScheduleHeader extends StatelessWidget {
   const _ScheduleHeader({required this.onBack, required this.onAdd});
@@ -274,6 +363,61 @@ class _WeekSwitcher extends StatelessWidget {
                 icon: const Icon(Icons.chevron_right, size: 24),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SemesterSwitcher extends StatelessWidget {
+  const _SemesterSwitcher({
+    required this.semesters,
+    required this.selectedSemester,
+    required this.onChanged,
+  });
+
+  final List<SemesterTimetable> semesters;
+  final SemesterTimetable selectedSemester;
+  final ValueChanged<SemesterTimetable> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (semesters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Center(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: selectedSemester.id,
+              isDense: true,
+              borderRadius: BorderRadius.circular(12),
+              items: [
+                for (final semester in semesters)
+                  DropdownMenuItem(
+                    value: semester.id,
+                    child: Text(
+                      semester.displayName,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (value) {
+                final semester = semesters
+                    .where((item) => item.id == value)
+                    .firstOrNull;
+                if (semester != null && semester.id != selectedSemester.id) {
+                  onChanged(semester);
+                }
+              },
+            ),
           ),
         ),
       ),

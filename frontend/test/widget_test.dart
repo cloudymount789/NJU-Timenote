@@ -5,6 +5,7 @@ import 'package:nju_timenote/app/router.dart';
 import 'package:nju_timenote/core/time/app_clock.dart';
 import 'package:nju_timenote/data/models/course.dart';
 import 'package:nju_timenote/data/models/recommendation.dart';
+import 'package:nju_timenote/data/models/settings.dart';
 import 'package:nju_timenote/data/models/todo.dart';
 import 'package:nju_timenote/data/repositories/app_repositories.dart';
 import 'package:nju_timenote/data/repositories/repository_factory.dart';
@@ -255,6 +256,132 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('刷新后课程'), findsOneWidget);
+  });
+
+  testWidgets('schedule switches semesters and refreshes courses', (
+    tester,
+  ) async {
+    final fixedNow = DateTime(2026, 3, 10, 9);
+    final repositories = RepositoryFactory.local(FixedAppClock(fixedNow));
+    final autumn = await repositories.settings.addSemesterTimetable(
+      startDate: DateTime(2026, 9, 7),
+      weekCount: 16,
+      schoolYear: '2026-2027',
+      termType: SemesterTermType.autumn,
+    );
+    await repositories.settings.setLastSelectedSemesterId(
+      'semester-2026-03-02',
+    );
+    await repositories.courses.createCourse(
+      const CourseDraft(
+        name: '春季课程',
+        teacher: '',
+        location: '仙 I-101',
+        note: '',
+        dayOfWeek: 2,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 2,
+        endWeek: 2,
+        semesterId: 'semester-2026-03-02',
+      ),
+    );
+    await repositories.courses.createCourse(
+      CourseDraft(
+        name: '秋季课程',
+        teacher: '',
+        location: '仙 I-102',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 1,
+        semesterId: autumn.id,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        clock: FixedAppClock(fixedNow),
+        home: const SchedulePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('春季课程'), findsOneWidget);
+    expect(find.text('秋季课程'), findsNothing);
+
+    await tester.tap(find.text('2025-2026学年第二学期'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2026-2027学年第一学期').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('第 0 周'), findsOneWidget);
+    expect(find.text('秋季课程'), findsNothing);
+    expect(find.text('春季课程'), findsNothing);
+
+    await tester.tap(find.byTooltip('下一周'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('第 1 周'), findsOneWidget);
+    expect(find.text('秋季课程'), findsOneWidget);
+  });
+
+  testWidgets('schedule scoped delete hides one week or all weeks', (
+    tester,
+  ) async {
+    final fixedNow = DateTime(2026, 3, 3, 9);
+    final repositories = RepositoryFactory.local(FixedAppClock(fixedNow));
+    await repositories.courses.createCourse(
+      const CourseDraft(
+        name: '可删除课程',
+        teacher: '',
+        location: '仙 I-101',
+        note: '',
+        dayOfWeek: 2,
+        startPeriod: 3,
+        endPeriod: 4,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 2,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        clock: FixedAppClock(fixedNow),
+        home: const SchedulePage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('可删除课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('仅删除这一次课'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('可删除课程'), findsNothing);
+    expect(await repositories.courses.getCoursesForWeek(2), hasLength(1));
+
+    await tester.tap(find.byTooltip('下一周'));
+    await tester.pumpAndSettle();
+    expect(find.text('可删除课程'), findsOneWidget);
+
+    await tester.longPress(find.text('可删除课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除所有课程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('删除').last);
+    await tester.pumpAndSettle();
+
+    expect(await repositories.courses.getCoursesForWeek(2), isEmpty);
   });
 
   testWidgets('next thing add button creates todo and shows refreshed state', (

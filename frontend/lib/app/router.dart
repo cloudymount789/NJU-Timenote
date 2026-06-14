@@ -36,9 +36,10 @@ class AppRoutes {
 }
 
 class CourseDetailRouteArgs {
-  const CourseDetailRouteArgs({this.courseId});
+  const CourseDetailRouteArgs({this.courseId, this.semesterId});
 
   final String? courseId;
+  final String? semesterId;
 }
 
 class SemesterDetailRouteArgs {
@@ -86,11 +87,17 @@ class AppRouter {
       case AppRoutes.schedule:
         page = const SchedulePage();
       case AppRoutes.scheduleAdd:
-        page = const AddSchedulePage();
+        final args = settings.arguments;
+        page = AddSchedulePage(
+          semesterId: args is CourseDetailRouteArgs ? args.semesterId : null,
+        );
       case AppRoutes.scheduleAddManual:
         final args = settings.arguments;
         page = ManualCoursePage(
           courseId: args is CourseDetailRouteArgs ? args.courseId : null,
+          initialSemesterId: args is CourseDetailRouteArgs
+              ? args.semesterId
+              : null,
         );
       case AppRoutes.scheduleAddScreenshot:
         page = const ScreenshotCoursePage();

@@ -8,7 +8,9 @@ import '../../core/widgets/app_header.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
 
 class AddSchedulePage extends StatelessWidget {
-  const AddSchedulePage({super.key});
+  const AddSchedulePage({this.semesterId, super.key});
+
+  final String? semesterId;
 
   @override
   Widget build(BuildContext context) {
@@ -32,9 +34,10 @@ class AddSchedulePage extends StatelessWidget {
               title: '手动添加课程',
               subtitle: '填写课程信息、周次和节次',
               onTap: () async {
-                await Navigator.of(
-                  context,
-                ).pushNamed(AppRoutes.scheduleAddManual);
+                await Navigator.of(context).pushNamed(
+                  AppRoutes.scheduleAddManual,
+                  arguments: CourseDetailRouteArgs(semesterId: semesterId),
+                );
               },
             ),
             const SizedBox(height: 20),

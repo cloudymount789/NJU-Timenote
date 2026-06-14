@@ -41,12 +41,24 @@ void main() {
     expect(settings.semesters, hasLength(1));
     expect(settings.activeSemester.semesterStartDate, DateTime(2026, 3, 2));
     expect(settings.activeSemester.weekCount, 16);
+    expect(settings.activeSemester.name, '2025-2026学年第二学期');
   });
 
   test('semester calculates current week from start date', () {
     expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 2)), 1);
     expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 8)), 1);
     expect(defaultSemesterTimetable.weekForDate(DateTime(2026, 3, 9)), 2);
+  });
+
+  test('semester name suggestion follows academic year term rules', () {
+    expect(
+      suggestedSemesterName('2025-2026', SemesterTermType.autumn),
+      '2025-2026学年第一学期',
+    );
+    expect(
+      suggestedSemesterName('2025-2026', SemesterTermType.spring),
+      '2025-2026学年第二学期',
+    );
   });
 
   test('local settings source creates updates deletes semesters', () async {
@@ -61,14 +73,14 @@ void main() {
       termType: SemesterTermType.autumn,
     );
     expect((await source.getSemesterSettings()).semesters, hasLength(2));
-    expect(added.displayName, '2026-2027 秋季学期');
+    expect(added.displayName, '2026-2027学年第一学期');
 
     await source.updateSemesterTimetable(
       added.copyWith(weekCount: 18, termType: SemesterTermType.spring),
     );
     var settings = await source.getSemesterSettings();
     expect(settings.semesterById(added.id)?.weekCount, 18);
-    expect(settings.semesterById(added.id)?.displayName, '2026-2027 春季学期');
+    expect(settings.semesterById(added.id)?.displayName, '2026-2027学年第二学期');
 
     await source.deleteSemesterTimetable(added.id);
     settings = await source.getSemesterSettings();
@@ -243,6 +255,72 @@ void main() {
 
     expect(await source.getCoursesForWeek(16), hasLength(1));
     expect(await source.getCoursesForWeek(17), isEmpty);
+  });
+
+  test('course source filters by semester and canceled weeks', () async {
+    final settingsSource = LocalSettingsSource(
+      clock: FixedAppClock(DateTime(2026, 7, 1, 9)),
+    );
+    final source = LocalCourseSource(settingsSource: settingsSource);
+    final autumn = await settingsSource.addSemesterTimetable(
+      startDate: DateTime(2026, 9, 7),
+      weekCount: 16,
+      schoolYear: '2026-2027',
+      termType: SemesterTermType.autumn,
+    );
+
+    final springCourse = await source.createCourse(
+      const CourseDraft(
+        name: '春季课程',
+        teacher: '',
+        location: 'A',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+        semesterId: 'semester-2026-03-02',
+      ),
+    );
+    await source.createCourse(
+      CourseDraft(
+        name: '秋季课程',
+        teacher: '',
+        location: 'B',
+        note: '',
+        dayOfWeek: 1,
+        startPeriod: 1,
+        endPeriod: 2,
+        weekRule: WeekRule.all,
+        startWeek: 1,
+        endWeek: 16,
+        semesterId: autumn.id,
+      ),
+    );
+
+    expect(
+      (await source.getCoursesForWeek(1, semesterId: autumn.id)).single.name,
+      '秋季课程',
+    );
+    expect(
+      (await source.getCoursesForWeek(
+        1,
+        semesterId: 'semester-2026-03-02',
+      )).single.name,
+      '春季课程',
+    );
+
+    await source.cancelCourseForWeek(springCourse.id, 1);
+    expect(
+      await source.getCoursesForWeek(1, semesterId: 'semester-2026-03-02'),
+      isEmpty,
+    );
+    expect(
+      await source.getCoursesForWeek(2, semesterId: 'semester-2026-03-02'),
+      hasLength(1),
+    );
   });
 
   testWidgets('timetable renders spanning and conflicting courses', (

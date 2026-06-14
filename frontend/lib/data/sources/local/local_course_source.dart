@@ -128,6 +128,22 @@ class LocalCourseSource {
     await _persist();
   }
 
+  Future<Course> cancelCourseForWeek(String courseId, int week) async {
+    final index = _courses.indexWhere((course) => course.id == courseId);
+    if (index == -1) {
+      throw StateError('课程不存在');
+    }
+    final old = _courses[index];
+    final canceledWeeks = {...old.canceledWeeks, week}.toList()..sort();
+    final updated = old.copyWith(
+      canceledWeeks: canceledWeeks,
+      updatedAt: clock.now(),
+    );
+    _courses[index] = updated;
+    await _persist();
+    return updated;
+  }
+
   String colorKeyForCourseName(String name) {
     final normalized = name.trim();
     if (normalized.isEmpty) {

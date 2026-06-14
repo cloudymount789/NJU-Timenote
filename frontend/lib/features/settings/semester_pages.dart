@@ -159,6 +159,7 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
   var _saving = false;
   String? _error;
   String? _id;
+  String _name = '2025-2026学年第二学期';
   String _schoolYear = '2025-2026';
   SemesterTermType _termType = SemesterTermType.spring;
   DateTime _startDate = DateTime(2026, 3, 2);
@@ -190,21 +191,64 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
         return;
       }
       _id = semester.id;
+      _name = semester.name;
       _schoolYear = semester.schoolYear;
       _termType = semester.termType;
       _startDate = semester.semesterStartDate;
       _weekCount = semester.weekCount;
       _createdAt = semester.createdAt;
+      _updatedAt = semester.updatedAt;
     } else {
       final seedDate = _suggestStartDate(settings);
       final now = AppScope.clockOf(context).now();
       _id = 'semester-${now.microsecondsSinceEpoch}';
       _schoolYear = _schoolYearForDate(seedDate);
       _termType = _termTypeForDate(seedDate);
+      _name = suggestedSemesterName(_schoolYear, _termType);
       _startDate = seedDate;
       _createdAt = now;
+      _updatedAt = now;
     }
     setState(() => _loading = false);
+  }
+
+  DateTime _updatedAt = DateTime(2026, 3, 2);
+
+  Future<void> _editName() async {
+    final controller = TextEditingController(text: _name);
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('学期名称'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: '请输入学期名称'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (value == null || !mounted) {
+      return;
+    }
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      showAppSnackBar(context, '请填写学期名称。');
+      return;
+    }
+    setState(() => _name = trimmed);
   }
 
   Future<void> _pickSchoolYear() async {
@@ -219,7 +263,13 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
       current: _schoolYear,
     );
     if (selected != null && mounted) {
-      setState(() => _schoolYear = selected);
+      setState(() {
+        final oldSuggestion = suggestedSemesterName(_schoolYear, _termType);
+        _schoolYear = selected;
+        if (_name == oldSuggestion) {
+          _name = suggestedSemesterName(_schoolYear, _termType);
+        }
+      });
     }
   }
 
@@ -246,7 +296,13 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
       },
     );
     if (selected != null && mounted) {
-      setState(() => _termType = selected);
+      setState(() {
+        final oldSuggestion = suggestedSemesterName(_schoolYear, _termType);
+        _termType = selected;
+        if (_name == oldSuggestion) {
+          _name = suggestedSemesterName(_schoolYear, _termType);
+        }
+      });
     }
   }
 
@@ -334,12 +390,13 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
     setState(() => _saving = true);
     final semester = SemesterTimetable(
       id: _id!,
-      name: '$_schoolYear ${_termType.label}',
+      name: _name,
       schoolYear: _schoolYear,
       termType: _termType,
       semesterStartDate: _startDate,
       weekCount: _weekCount,
       createdAt: _createdAt,
+      updatedAt: _updatedAt,
     );
     try {
       await AppScope.repositoriesOf(
@@ -386,6 +443,12 @@ class _SemesterDetailPageState extends State<SemesterDetailPage> {
                       padding: EdgeInsets.zero,
                       child: Column(
                         children: [
+                          _DetailRow(
+                            title: '学期名称',
+                            value: _name,
+                            onTap: _editName,
+                          ),
+                          const _Divider(),
                           _DetailRow(
                             title: '学年范围',
                             value: _schoolYear,

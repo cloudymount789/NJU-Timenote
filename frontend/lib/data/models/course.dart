@@ -16,6 +16,7 @@ class Course {
     required this.startWeek,
     required this.endWeek,
     this.semesterId = 'semester-2026-03-02',
+    this.canceledWeeks = const [],
     required this.colorKey,
     required this.source,
     required this.createdAt,
@@ -34,6 +35,7 @@ class Course {
   final int startWeek;
   final int endWeek;
   final String semesterId;
+  final List<int> canceledWeeks;
   final String colorKey;
   final CourseSource source;
   final DateTime createdAt;
@@ -53,6 +55,7 @@ class Course {
       'startWeek': startWeek,
       'endWeek': endWeek,
       'semesterId': semesterId,
+      'canceledWeeks': canceledWeeks,
       'colorKey': colorKey,
       'source': source.name,
       'createdAt': createdAt.toIso8601String(),
@@ -74,6 +77,9 @@ class Course {
       startWeek: json['startWeek'] as int,
       endWeek: json['endWeek'] as int,
       semesterId: json['semesterId'] as String? ?? 'semester-2026-03-02',
+      canceledWeeks: (json['canceledWeeks'] as List? ?? const [])
+          .map((week) => week as int)
+          .toList(),
       colorKey: json['colorKey'] as String,
       source: CourseSource.values.byName(json['source'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
@@ -94,6 +100,7 @@ class Course {
     int? startWeek,
     int? endWeek,
     String? semesterId,
+    List<int>? canceledWeeks,
     String? colorKey,
     CourseSource? source,
     DateTime? createdAt,
@@ -112,6 +119,7 @@ class Course {
       startWeek: startWeek ?? this.startWeek,
       endWeek: endWeek ?? this.endWeek,
       semesterId: semesterId ?? this.semesterId,
+      canceledWeeks: canceledWeeks ?? this.canceledWeeks,
       colorKey: colorKey ?? this.colorKey,
       source: source ?? this.source,
       createdAt: createdAt ?? this.createdAt,
@@ -120,6 +128,9 @@ class Course {
   }
 
   bool occursInWeek(int week) {
+    if (canceledWeeks.contains(week)) {
+      return false;
+    }
     if (week < startWeek || week > endWeek) {
       return false;
     }

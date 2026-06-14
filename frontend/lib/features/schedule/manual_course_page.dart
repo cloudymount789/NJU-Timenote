@@ -12,9 +12,10 @@ import '../../data/models/course.dart';
 import '../../data/models/settings.dart';
 
 class ManualCoursePage extends StatefulWidget {
-  const ManualCoursePage({this.courseId, super.key});
+  const ManualCoursePage({this.courseId, this.initialSemesterId, super.key});
 
   final String? courseId;
+  final String? initialSemesterId;
 
   @override
   State<ManualCoursePage> createState() => _ManualCoursePageState();
@@ -58,8 +59,12 @@ class _ManualCoursePageState extends State<ManualCoursePage> {
       return;
     }
     _semesters = settings.semesters;
-    _semesterId = settings.activeSemester.id;
-    _endWeek = settings.activeSemester.weekCount;
+    final initialSemester = widget.initialSemesterId == null
+        ? null
+        : settings.semesterById(widget.initialSemesterId!);
+    final selectedSemester = initialSemester ?? settings.activeSemester;
+    _semesterId = selectedSemester.id;
+    _endWeek = selectedSemester.weekCount;
     final id = widget.courseId;
     if (id == null) {
       setState(() => _loading = false);

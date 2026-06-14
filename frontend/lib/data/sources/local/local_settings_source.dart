@@ -44,12 +44,13 @@ class LocalSettingsSource {
     final semesterTermType = termType ?? _termType(date);
     final semester = SemesterTimetable(
       id: 'semester-${now.microsecondsSinceEpoch}',
-      name: _semesterName(semesterSchoolYear, semesterTermType),
+      name: suggestedSemesterName(semesterSchoolYear, semesterTermType),
       schoolYear: semesterSchoolYear,
       termType: semesterTermType,
       semesterStartDate: DateTime(date.year, date.month, date.day),
       weekCount: weekCount,
       createdAt: now,
+      updatedAt: now,
     );
     _validateSemester(semester, settings.semesters);
     await writeSemesterSettings(
@@ -69,9 +70,10 @@ class LocalSettingsSource {
     if (index == -1) {
       throw StateError('学期课表不存在');
     }
-    _validateSemester(semester, settings.semesters);
+    final updatedSemester = semester.copyWith(updatedAt: clock.now());
+    _validateSemester(updatedSemester, settings.semesters);
     final updated = [...settings.semesters];
-    updated[index] = semester;
+    updated[index] = updatedSemester;
     await writeSemesterSettings(settings.copyWith(semesters: updated));
   }
 
@@ -84,14 +86,15 @@ class LocalSettingsSource {
       await updateSemesterTimetable(semester);
       return semester;
     }
-    _validateSemester(semester, settings.semesters);
+    final savedSemester = semester.copyWith(updatedAt: clock.now());
+    _validateSemester(savedSemester, settings.semesters);
     await writeSemesterSettings(
       settings.copyWith(
-        semesters: [...settings.semesters, semester],
-        lastSelectedSemesterId: semester.id,
+        semesters: [...settings.semesters, savedSemester],
+        lastSelectedSemesterId: savedSemester.id,
       ),
     );
-    return semester;
+    return savedSemester;
   }
 
   Future<void> deleteSemesterTimetable(String semesterId) async {
@@ -160,10 +163,6 @@ bool _dateRangesOverlap(
   DateTime bEnd,
 ) {
   return !aEnd.isBefore(bStart) && !bEnd.isBefore(aStart);
-}
-
-String _semesterName(String schoolYear, SemesterTermType termType) {
-  return '$schoolYear ${termType.label}';
 }
 
 String _schoolYear(DateTime date) {

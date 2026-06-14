@@ -104,6 +104,13 @@ class LocalCourseRepository implements CourseRepository {
   }
 
   @override
+  Future<Course> cancelCourseForWeek(String courseId, int week) async {
+    final course = await _source.cancelCourseForWeek(courseId, week);
+    _changes.markChanged();
+    return course;
+  }
+
+  @override
   Future<void> deleteCourse(String courseId) async {
     await _source.deleteCourse(courseId);
     _changes.markChanged();

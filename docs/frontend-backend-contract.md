@@ -417,3 +417,8 @@ IDs：客户端生成的全局唯一字符串（如 `course-<UUID>`、`todo-<UUI
     - 当前 Flutter 本地实现已在 `SemesterTimetable` 中增加 `schoolYear`（如 `2025-2026`）和 `termType`（`spring` / `autumn`），用于设置页的学期详情编辑；旧 `name` 字段仍保留兼容。
     - 当前本地实现支持新增、编辑、删除多个学期课表，并校验不同学期的日期周范围不能重叠。
     - 上文 HTTP API 仍只有整体 `GET/PUT /api/v1/settings/semester`，尚未确认后端是否需要拆分新增、编辑、删除单个学期的接口，也未确认 `schoolYear`、`termType` 是否进入不可变契约正文。
+
+14. **课程单周删除例外待后端确认**
+    - 当前 Flutter 本地实现已在 `Course` 中增加 `canceledWeeks: int[]`，用于支持“仅删除这一次课”；查询课程时会排除这些周，但保留其它周的课程规则。
+    - 当前学期默认名称调整为 `2025-2026学年第二学期`，并在学期设置中持久化 `updatedAt`；这些字段是否进入契约正文仍待后端确认。
+    - 上文课程删除 API 只有 `DELETE /api/v1/courses/{courseId}`，尚未定义“删除某一周实例”的 HTTP 表达方式。
