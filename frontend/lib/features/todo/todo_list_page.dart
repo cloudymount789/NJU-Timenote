@@ -42,6 +42,7 @@ class _TodoListPageState extends State<TodoListPage> {
     repositories.changes.addListener(_handleDataChanged);
     _didLoad = true;
     _future = _load();
+    _syncSmartSortState();
   }
 
   @override
@@ -52,6 +53,7 @@ class _TodoListPageState extends State<TodoListPage> {
 
   void _handleDataChanged() {
     if (mounted) {
+      _syncSmartSortState();
       setState(() {
         _future = _load();
       });
@@ -60,6 +62,18 @@ class _TodoListPageState extends State<TodoListPage> {
 
   Future<List<TodoItem>> _load() {
     return AppScope.repositoriesOf(context).todos.getTodos(_filter);
+  }
+
+  Future<void> _syncSmartSortState() async {
+    final enabled = await AppScope.repositoriesOf(
+      context,
+    ).todos.isSmartSortEnabled();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isSmartSortEnabled = enabled;
+    });
   }
 
   Future<void> _refresh() async {
@@ -153,14 +167,7 @@ class _TodoListPageState extends State<TodoListPage> {
   Future<void> _toggleSmartSort() async {
     final repo = AppScope.repositoriesOf(context).todos;
     if (_isSmartSortEnabled) {
-      final todos = await (_future ?? Future.value(const <TodoItem>[]));
-      await repo.reorderTodos(todos.map((todo) => todo.id).toList());
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isSmartSortEnabled = false;
-      });
+      await repo.smartSortTodos();
       await _refresh();
       return;
     }

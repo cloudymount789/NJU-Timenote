@@ -182,35 +182,66 @@ void main() {
   });
 
   test(
-    'smart sort uses priority before urgency and overwrites manual order',
+    'smart sort uses urgency before priority and overwrites manual order',
     () async {
       final base = DateTime(2026, 6, 12, 9);
-      final low = await todos.createTodo(
+      final urgentLow = await todos.createTodo(
         TodoDraft(
-          title: '低优先级',
+          title: '紧急低优先级',
           kind: TodoKind.deadline,
           deadlineAt: base,
           priority: 1,
         ),
       );
-      final high = await todos.createTodo(
+      final laterHigh = await todos.createTodo(
         TodoDraft(
-          title: '高优先级',
+          title: '较晚高优先级',
           kind: TodoKind.deadline,
           deadlineAt: base.add(const Duration(days: 3)),
           priority: 5,
         ),
       );
 
-      await todos.reorderTodos([low.id, high.id]);
+      await todos.reorderTodos([laterHigh.id, urgentLow.id]);
       await todos.smartSortTodos();
 
       final result = await todos.getTodos();
-      expect(result.map((todo) => todo.id).take(2), [high.id, low.id]);
+      expect(result.map((todo) => todo.id).take(2), [
+        urgentLow.id,
+        laterHigh.id,
+      ]);
     },
   );
 
-  test('manual reorder after smart sort keeps the new manual order', () async {
+  test('creating a todo reruns smart sort while keeping it enabled', () async {
+    final base = DateTime(2026, 6, 12, 9);
+    final later = await todos.createTodo(
+      TodoDraft(
+        title: '较晚',
+        kind: TodoKind.deadline,
+        deadlineAt: base.add(const Duration(days: 3)),
+        priority: 5,
+      ),
+    );
+    await todos.smartSortTodos();
+
+    final urgent = await todos.createTodo(
+      TodoDraft(
+        title: '新增紧急',
+        kind: TodoKind.deadline,
+        deadlineAt: base,
+        priority: 1,
+      ),
+    );
+
+    expect(await todos.isSmartSortEnabled(), isTrue);
+    expect((await todos.getTodos()).map((todo) => todo.id), [
+      urgent.id,
+      later.id,
+    ]);
+  });
+
+  test('manual reorder after smart sort disables smart sort', () async {
     final base = DateTime(2026, 6, 12, 9);
     final low = await todos.createTodo(
       TodoDraft(
@@ -239,13 +270,15 @@ void main() {
 
     await todos.smartSortTodos();
     expect((await todos.getTodos()).map((todo) => todo.id), [
-      high.id,
-      middle.id,
       low.id,
+      middle.id,
+      high.id,
     ]);
+    expect(await todos.isSmartSortEnabled(), isTrue);
 
     await todos.reorderTodos([low.id, high.id, middle.id]);
 
+    expect(await todos.isSmartSortEnabled(), isFalse);
     expect((await todos.getTodos()).map((todo) => todo.id), [
       low.id,
       high.id,

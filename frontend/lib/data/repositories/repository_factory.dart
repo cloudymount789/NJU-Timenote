@@ -149,6 +149,11 @@ class LocalTodoRepository implements TodoRepository {
   }
 
   @override
+  Future<bool> isSmartSortEnabled() {
+    return _source.isSmartSortEnabled();
+  }
+
+  @override
   Future<TodoItem> createTodo(TodoDraft draft) async {
     final todo = await _source.createTodo(draft);
     _changes.markChanged();

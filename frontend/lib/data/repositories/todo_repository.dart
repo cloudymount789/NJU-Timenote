@@ -5,6 +5,7 @@ abstract class TodoRepository {
   Future<TodoItem?> getTodoById(String todoId);
   Future<List<TodoItem>> searchTodos(String query);
   Future<TodoItem?> getNextTodo();
+  Future<bool> isSmartSortEnabled();
   Future<TodoItem> createTodo(TodoDraft draft);
   Future<TodoItem> updateTodo(String todoId, TodoPatch patch);
   Future<void> deleteTodo(String todoId);
