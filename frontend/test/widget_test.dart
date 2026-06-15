@@ -155,6 +155,49 @@ void main() {
     expect(find.text('选择 Tag'), findsOneWidget);
   });
 
+  testWidgets('tag picker adds and deletes tags with confirmation', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final todo = await repositories.todos.createTodo(
+      const TodoDraft(title: '带 tag', tags: ['复习', '作业']),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        home: TodoDetailPage(isCreate: false, todoId: todo.id),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tagPicker = find.byKey(const ValueKey('todo-tag-picker'));
+    await tester.ensureVisible(tagPicker);
+    await tester.tap(tagPicker);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('新增 tag'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '请输入 tag 名称'), '实验');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '确定'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('新增 Tag'), findsNothing);
+    expect(find.text('实验'), findsOneWidget);
+
+    await tester.longPress(find.widgetWithText(FilterChip, '复习'));
+    await tester.pumpAndSettle();
+    expect(find.text('删除 Tag'), findsOneWidget);
+
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('复习'), findsNothing);
+    expect((await repositories.todos.getTodoById(todo.id))?.tags, ['作业']);
+  });
+
   testWidgets('home renders real next course todo and deadline data', (
     tester,
   ) async {

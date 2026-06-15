@@ -496,6 +496,18 @@ void main() {
     },
   );
 
+  test('deleting a tag removes it from existing todos', () async {
+    final todo = await todos.createTodo(
+      const TodoDraft(title: '带 tag', tags: ['复习', '作业']),
+    );
+
+    await tags.deleteTag('复习');
+    await todos.removeTagFromTodos('复习');
+
+    expect(await tags.getTags(), isNot(contains('复习')));
+    expect((await todos.getTodoById(todo.id))?.tags, ['作业']);
+  });
+
   test('kind update cleans incompatible time fields', () async {
     final todo = await todos.createTodo(
       TodoDraft(

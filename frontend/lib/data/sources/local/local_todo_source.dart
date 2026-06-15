@@ -64,6 +64,30 @@ class LocalTodoSource {
     return List.unmodifiable(todos);
   }
 
+  Future<bool> removeTagFromTodos(String tag) async {
+    final normalized = tag.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    final now = clock.now();
+    var changed = false;
+    for (var index = 0; index < _items.length; index += 1) {
+      final item = _items[index];
+      if (!item.tags.contains(normalized)) {
+        continue;
+      }
+      final nextTags = item.tags
+          .where((itemTag) => itemTag != normalized)
+          .toList(growable: false);
+      _items[index] = item.copyWith(tags: nextTags, updatedAt: now);
+      changed = true;
+    }
+    if (changed) {
+      await _persist();
+    }
+    return changed;
+  }
+
   Future<TodoItem?> getNextTodo() async {
     final todos = await getTodos(const TodoFilter(statuses: [TodoStatus.open]));
     return todos.firstOrNull;

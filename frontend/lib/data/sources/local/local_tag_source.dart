@@ -39,6 +39,18 @@ class LocalTagSource {
     }
   }
 
+  Future<bool> deleteTag(String name) async {
+    final normalized = name.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    final removed = _tags.remove(normalized);
+    if (removed) {
+      await _persist();
+    }
+    return removed;
+  }
+
   void _restore(Iterable<String> initialTags) {
     final data = store?.readMap(LocalStoreKeys.tags);
     if (data == null || data.isEmpty) {
