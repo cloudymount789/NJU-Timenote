@@ -19,6 +19,20 @@ import 'package:nju_timenote/features/todo/todo_detail_page.dart';
 import 'package:nju_timenote/features/todo/todo_list_page.dart';
 
 void main() {
+  test('duration time helpers default to one hour and handle next day', () {
+    final start = DateTime(2026, 6, 12, 23, 30);
+
+    expect(defaultDurationEndForStart(start), DateTime(2026, 6, 13, 0, 30));
+    expect(
+      durationEndOnOrAfterStart(start, const TimeOfDay(hour: 0, minute: 15)),
+      DateTime(2026, 6, 13, 0, 15),
+    );
+    expect(
+      durationEndOnOrAfterStart(start, const TimeOfDay(hour: 23, minute: 45)),
+      DateTime(2026, 6, 12, 23, 45),
+    );
+  });
+
   testWidgets('starts on home and opens settings', (tester) async {
     await tester.pumpWidget(
       TimenoteApp(repositories: RepositoryFactory.local()),

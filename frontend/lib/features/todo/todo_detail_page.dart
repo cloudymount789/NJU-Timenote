@@ -176,9 +176,8 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
     }
   }
 
-  Future<void> _pickTime({
+  Future<DateTime?> _pickDateTime({
     required String label,
-    required ValueChanged<DateTime> onPicked,
     DateTime? initial,
   }) async {
     final seed = initial ?? AppScope.clockOf(context).now();
@@ -189,7 +188,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       lastDate: DateTime(2035),
     );
     if (date == null || !mounted) {
-      return;
+      return null;
     }
     final time = await showTimePicker(
       context: context,
@@ -197,9 +196,44 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       helpText: label,
     );
     if (time == null) {
+      return null;
+    }
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickTime({
+    required String label,
+    required ValueChanged<DateTime> onPicked,
+    DateTime? initial,
+  }) async {
+    final value = await _pickDateTime(label: label, initial: initial);
+    if (value == null) {
       return;
     }
-    onPicked(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+    onPicked(value);
+  }
+
+  Future<void> _pickOnceDurationStart() async {
+    final start = await _pickDateTime(label: '选择开始时间', initial: _startAt);
+    if (start == null || !mounted) {
+      return;
+    }
+    final defaultEnd = defaultDurationEndForStart(start);
+    setState(() {
+      _startAt = start;
+      _endAt = defaultEnd;
+    });
+    final endTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(defaultEnd),
+      helpText: '选择结束时间',
+    );
+    if (endTime == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _endAt = durationEndOnOrAfterStart(start, endTime);
+    });
   }
 
   Future<void> _pickRepeatDeadline() async {
@@ -462,12 +496,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
                                           _endAt,
                                         ),
                                   onTap: _repeatRule == RepeatRule.once
-                                      ? () => _pickTime(
-                                          label: '选择开始时间',
-                                          initial: _startAt,
-                                          onPicked: (value) =>
-                                              setState(() => _startAt = value),
-                                        )
+                                      ? _pickOnceDurationStart
                                       : _pickRepeatDuration,
                                 ),
                                 if (_repeatRule == RepeatRule.once)
@@ -792,4 +821,22 @@ String _weekdayName(int weekday) {
 DateTime _dateForWeekday(DateTime reference, int weekday) {
   final date = DateTime(reference.year, reference.month, reference.day);
   return date.add(Duration(days: weekday - reference.weekday));
+}
+
+DateTime defaultDurationEndForStart(DateTime start) {
+  return start.add(const Duration(hours: 1));
+}
+
+DateTime durationEndOnOrAfterStart(DateTime start, TimeOfDay endTime) {
+  var end = DateTime(
+    start.year,
+    start.month,
+    start.day,
+    endTime.hour,
+    endTime.minute,
+  );
+  if (!end.isAfter(start)) {
+    end = end.add(const Duration(days: 1));
+  }
+  return end;
 }
