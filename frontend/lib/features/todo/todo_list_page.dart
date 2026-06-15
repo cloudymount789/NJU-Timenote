@@ -167,7 +167,13 @@ class _TodoListPageState extends State<TodoListPage> {
   Future<void> _toggleSmartSort() async {
     final repo = AppScope.repositoriesOf(context).todos;
     if (_isSmartSortEnabled) {
-      await repo.smartSortTodos();
+      await repo.disableSmartSort();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSmartSortEnabled = false;
+      });
       await _refresh();
       return;
     }
@@ -175,7 +181,7 @@ class _TodoListPageState extends State<TodoListPage> {
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: '启用智能排序？',
-      message: '这将覆盖现有手动排序，并按重要程度、截止/开始时间等重新排列待办。',
+      message: '开启后会持续按紧急程度、重要程度等自动排列待办，直到你再次点击关闭或手动拖拽排序。',
       confirmText: '排序',
     );
     if (confirmed != true || !mounted) {
@@ -194,8 +200,12 @@ class _TodoListPageState extends State<TodoListPage> {
     final repo = AppScope.repositoriesOf(context).todos;
     final todos = await (_future ?? Future.value(const <TodoItem>[]));
     final ordered = [...todos];
+    var targetIndex = newIndex;
+    if (oldIndex < targetIndex) {
+      targetIndex -= 1;
+    }
     final moved = ordered.removeAt(oldIndex);
-    ordered.insert(newIndex, moved);
+    ordered.insert(targetIndex, moved);
     setState(() {
       _isSmartSortEnabled = false;
       _future = Future.value(ordered);
@@ -558,29 +568,32 @@ class _SmartSortHeader extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 2),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(10),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  enabled ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: enabled ? AppColors.primary : AppColors.subtle,
-                  size: 22,
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  '智能排序',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+        child: Tooltip(
+          message: enabled ? '关闭智能排序' : '开启智能排序',
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    enabled ? Icons.check_circle : Icons.radio_button_unchecked,
+                    color: enabled ? AppColors.primary : AppColors.subtle,
+                    size: 22,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    enabled ? '智能排序已开启' : '开启智能排序',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

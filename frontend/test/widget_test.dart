@@ -130,6 +130,34 @@ void main() {
     },
   );
 
+  testWidgets('todo list smart sort state can be restored and toggled off', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await repositories.todos.createTodo(const TodoDraft(title: '普通'));
+    await repositories.todos.smartSortTodos();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('智能排序已开启'), findsOneWidget);
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('智能排序已开启'), findsOneWidget);
+
+    await tester.tap(find.text('智能排序已开启'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.isSmartSortEnabled(), isFalse);
+    expect(find.text('开启智能排序'), findsOneWidget);
+  });
+
   testWidgets('todo detail tag row opens tag selection with or without tags', (
     tester,
   ) async {

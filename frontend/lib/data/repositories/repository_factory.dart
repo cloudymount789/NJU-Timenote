@@ -207,6 +207,12 @@ class LocalTodoRepository implements TodoRepository {
   }
 
   @override
+  Future<void> disableSmartSort() async {
+    await _source.disableSmartSort();
+    _changes.markChanged();
+  }
+
+  @override
   Future<void> batchDelete(List<String> todoIds) async {
     await _source.batchDelete(todoIds);
     _changes.markChanged();

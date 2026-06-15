@@ -83,6 +83,7 @@ class LocalTodoSource {
       changed = true;
     }
     if (changed) {
+      _reapplySmartSortIfNeeded();
       await _persist();
     }
     return changed;
@@ -180,6 +181,7 @@ class LocalTodoSource {
     if (result.isRecurring && patch.status.isSet) {
       _setRepeatCompletion(result, now, patch.status.value == TodoStatus.done);
     }
+    _reapplySmartSortIfNeeded();
     await _persist();
     return _projectForReference(result, now);
   }
@@ -188,6 +190,7 @@ class LocalTodoSource {
     _items.removeAt(_indexOf(todoId));
     _manualOrder.remove(todoId);
     _repeatCompletions.removeWhere((key, _) => key.split('|').first == todoId);
+    _reapplySmartSortIfNeeded();
     await _persist();
   }
 
@@ -203,6 +206,7 @@ class LocalTodoSource {
       final template = _items[_indexOf(todoId)];
       final now = clock.now();
       _setRepeatCompletion(template, now, true);
+      _reapplySmartSortIfNeeded();
       await _persist();
       return _projectForReference(template, now);
     }
@@ -224,6 +228,7 @@ class LocalTodoSource {
       final template = _items[_indexOf(todoId)];
       final now = clock.now();
       _setRepeatCompletion(template, now, false);
+      _reapplySmartSortIfNeeded();
       await _persist();
       return _projectForReference(template, now);
     }
@@ -250,6 +255,7 @@ class LocalTodoSource {
     _repeatCompletions.removeWhere(
       (key, _) => ids.contains(key.split('|').first),
     );
+    _reapplySmartSortIfNeeded();
     await _persist();
   }
 
@@ -280,12 +286,27 @@ class LocalTodoSource {
     await _persist();
   }
 
+  Future<void> disableSmartSort() async {
+    if (_sortMode != _TodoSortMode.smart) {
+      return;
+    }
+    _sortMode = _TodoSortMode.defaultOrder;
+    _manualOrder.clear();
+    await _persist();
+  }
+
   void _applySmartSort() {
     final sorted = [..._items]..sort(compareTodosByPriority);
     _sortMode = _TodoSortMode.smart;
     _manualOrder
       ..clear()
       ..addAll(sorted.map((todo) => todo.id));
+  }
+
+  void _reapplySmartSortIfNeeded() {
+    if (_sortMode == _TodoSortMode.smart) {
+      _applySmartSort();
+    }
   }
 
   int _compareTodos(TodoItem a, TodoItem b) {
@@ -335,6 +356,7 @@ class LocalTodoSource {
       }
     }
     if (changed) {
+      _reapplySmartSortIfNeeded();
       await _persist();
     }
   }

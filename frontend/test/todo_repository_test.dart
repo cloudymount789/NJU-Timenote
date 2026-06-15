@@ -256,6 +256,75 @@ void main() {
     ]);
   });
 
+  test(
+    'delete complete and edit keep smart sort enabled and reapplied',
+    () async {
+      final base = DateTime(2026, 6, 12, 9);
+      final urgent = await todos.createTodo(
+        TodoDraft(
+          title: '紧急',
+          kind: TodoKind.deadline,
+          deadlineAt: base,
+          priority: 1,
+        ),
+      );
+      final later = await todos.createTodo(
+        TodoDraft(
+          title: '较晚',
+          kind: TodoKind.deadline,
+          deadlineAt: base.add(const Duration(days: 3)),
+          priority: 5,
+        ),
+      );
+      final editable = await todos.createTodo(
+        TodoDraft(
+          title: '可编辑',
+          kind: TodoKind.deadline,
+          deadlineAt: base.add(const Duration(days: 5)),
+          priority: 2,
+        ),
+      );
+      await todos.smartSortTodos();
+
+      await todos.updateTodo(
+        editable.id,
+        TodoPatch(
+          deadlineAt: PatchField.value(base.subtract(const Duration(hours: 1))),
+        ),
+      );
+      expect(await todos.isSmartSortEnabled(), isTrue);
+      expect((await todos.getTodos()).map((todo) => todo.id), [
+        editable.id,
+        urgent.id,
+        later.id,
+      ]);
+
+      await todos.completeTodo(editable.id);
+      expect(await todos.isSmartSortEnabled(), isTrue);
+      expect((await todos.getTodos()).map((todo) => todo.id), [
+        urgent.id,
+        later.id,
+        editable.id,
+      ]);
+
+      await todos.deleteTodo(urgent.id);
+      expect(await todos.isSmartSortEnabled(), isTrue);
+      expect((await todos.getTodos()).map((todo) => todo.id), [
+        later.id,
+        editable.id,
+      ]);
+    },
+  );
+
+  test('clicking smart sort again can disable smart sort mode', () async {
+    await todos.createTodo(const TodoDraft(title: '普通'));
+    await todos.smartSortTodos();
+
+    await todos.disableSmartSort();
+
+    expect(await todos.isSmartSortEnabled(), isFalse);
+  });
+
   test('manual reorder after smart sort disables smart sort', () async {
     final base = DateTime(2026, 6, 12, 9);
     final low = await todos.createTodo(
