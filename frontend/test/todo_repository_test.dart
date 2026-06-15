@@ -181,6 +181,21 @@ void main() {
     expect(result.map((todo) => todo.id), [third.id, first.id, second.id]);
   });
 
+  test('visible todo numbers are stable and skip completed todos', () async {
+    final first = await todos.createTodo(const TodoDraft(title: '第一'));
+    final second = await todos.createTodo(const TodoDraft(title: '第二'));
+    final third = await todos.createTodo(const TodoDraft(title: '第三'));
+    await todos.completeTodo(second.id);
+
+    final result = await todos.getTodos();
+    final numbers = visibleTodoNumbers(result);
+
+    expect(numbers[first.id], 1);
+    expect(numbers[third.id], 2);
+    expect(numbers[second.id], isNull);
+    expect(visibleTodoNumbers(result), numbers);
+  });
+
   test(
     'smart sort uses urgency before priority and overwrites manual order',
     () async {

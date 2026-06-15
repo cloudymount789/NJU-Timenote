@@ -48,7 +48,7 @@
 - `frontend/lib/features/schedule/add_schedule_page.dart`：添加课表入口页。
 - `frontend/lib/features/schedule/manual_course_page.dart`：手动添加/编辑课程表单、添加至学期、随学期持续周数联动的周次选择、节次选择和校验。
 - `frontend/lib/features/schedule/screenshot_course_page.dart`：截图添加课程流程壳，当前提示识别服务未接入。
-- `frontend/lib/features/todo/todo_list_page.dart`：待办列表、空态、下拉刷新、筛选侧栏、批量模式、拖拽排序、三种待办行、底部输入栏入口；右上角为批量编辑/筛选/手动添加待办，智能排序入口在列表大卡片左上区域。
+- `frontend/lib/features/todo/todo_list_page.dart`：待办列表、空态、下拉刷新、筛选侧栏、批量模式、拖拽排序、三种待办行、底部输入栏入口；右上角为批量编辑/筛选/手动添加待办，智能排序入口在列表大卡片左上区域；可见序号由当前稳定排序后的列表一次性计算，完成项不显示序号但保留左侧对齐宽度。
 - `frontend/lib/features/todo/todo_detail_page.dart`：待办新建/编辑详情页、重复优先的类型切换、一次性日期时间选择、持续时间开始后自动给出 1 小时结束时间并继续选择结束时间、重复周几/时间选择、半星优先级、删除确认。
 - `frontend/lib/features/todo/todo_tag_page.dart`：tag 多选、新增 tag 弹窗和长按删除 tag；删除前二次确认，确认后从 tag 库与所有已有待办中移除该 tag 引用。
 - `frontend/lib/features/todo/todo_search_page.dart`：待办搜索、历史、清空历史确认、结果列表。

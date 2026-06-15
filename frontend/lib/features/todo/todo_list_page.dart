@@ -470,7 +470,7 @@ class _TodoListCard extends StatelessWidget {
               ],
             );
           }
-          var openIndex = 0;
+          final visibleNumbers = visibleTodoNumbers(todos);
           if (batchMode) {
             return Column(
               children: [
@@ -492,14 +492,11 @@ class _TodoListCard extends StatelessWidget {
                     onReorderItem: onReorder,
                     itemBuilder: (context, index) {
                       final todo = todos[index];
-                      final number = todo.status == TodoStatus.open
-                          ? ++openIndex
-                          : null;
                       return _TodoRow(
                         key: ValueKey(todo.id),
                         todo: todo,
                         index: index,
-                        number: number,
+                        number: visibleNumbers[todo.id],
                         batchMode: batchMode,
                         selected: selectedIds.contains(todo.id),
                         onTap: () => onTap(todo),
@@ -528,13 +525,10 @@ class _TodoListCard extends StatelessWidget {
                         const Divider(height: 1, indent: 54),
                     itemBuilder: (context, index) {
                       final todo = todos[index];
-                      final number = todo.status == TodoStatus.open
-                          ? ++openIndex
-                          : null;
                       return _TodoRow(
                         todo: todo,
                         index: index,
-                        number: number,
+                        number: visibleNumbers[todo.id],
                         batchMode: batchMode,
                         selected: selectedIds.contains(todo.id),
                         onTap: () => onTap(todo),
@@ -724,6 +718,20 @@ String todoListMetaText(TodoItem todo) {
     TodoKind.deadline => 'DDL: ${_formatDateTime(todo.deadlineAt)}',
     TodoKind.normal => todo.tags.isEmpty ? '普通待办' : todo.tags.join(' · '),
   };
+}
+
+Map<String, int?> visibleTodoNumbers(List<TodoItem> todos) {
+  final numbers = <String, int?>{};
+  var openIndex = 0;
+  for (final todo in todos) {
+    if (todo.status == TodoStatus.open) {
+      openIndex += 1;
+      numbers[todo.id] = openIndex;
+    } else {
+      numbers[todo.id] = null;
+    }
+  }
+  return numbers;
 }
 
 String _repeatDeadlineMeta(TodoItem todo) {
