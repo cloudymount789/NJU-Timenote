@@ -254,6 +254,94 @@ void main() {
     expect(find.text('开启智能排序'), findsOneWidget);
   });
 
+  testWidgets('manual reorder in smart sort mode asks before switching modes', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final first = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '紧急',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 12, 9),
+      ),
+    );
+    final second = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '稍后',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 13, 9),
+      ),
+    );
+    await repositories.todos.smartSortTodos();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('批量操作'));
+    await tester.pumpAndSettle();
+
+    final reorderable = tester.widget<ReorderableListView>(
+      find.byType(ReorderableListView),
+    );
+    reorderable.onReorderItem!(0, 2);
+    await tester.pumpAndSettle();
+
+    expect(find.text('关闭智能排序？'), findsOneWidget);
+    expect(find.text('当前处于智能排序模式，手动调整位置将会自动关闭智能排序。'), findsOneWidget);
+
+    await tester.tap(find.text('关闭并排序'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.isSmartSortEnabled(), isFalse);
+    expect((await repositories.todos.getTodos()).map((todo) => todo.id), [
+      second.id,
+      first.id,
+    ]);
+  });
+
+  testWidgets('canceling smart sort reorder keeps smart mode and order', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final first = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '紧急保留',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 12, 9),
+      ),
+    );
+    final second = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '稍后保留',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 13, 9),
+      ),
+    );
+    await repositories.todos.smartSortTodos();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('批量操作'));
+    await tester.pumpAndSettle();
+
+    final reorderable = tester.widget<ReorderableListView>(
+      find.byType(ReorderableListView),
+    );
+    reorderable.onReorderItem!(0, 2);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.isSmartSortEnabled(), isTrue);
+    expect((await repositories.todos.getTodos()).map((todo) => todo.id), [
+      first.id,
+      second.id,
+    ]);
+  });
+
   testWidgets('todo detail tag row opens tag selection with or without tags', (
     tester,
   ) async {
