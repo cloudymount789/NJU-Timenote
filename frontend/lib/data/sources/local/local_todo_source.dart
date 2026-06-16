@@ -64,6 +64,35 @@ class LocalTodoSource {
     return List.unmodifiable(todos);
   }
 
+  Future<bool> removeTagFromTodos(String tag) async {
+    final normalized = tag.trim();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    final now = clock.now();
+    var changed = false;
+    for (var index = 0; index < _items.length; index += 1) {
+      final item = _items[index];
+      if (!item.tags.contains(normalized)) {
+        continue;
+      }
+      final nextTags = item.tags
+          .where((itemTag) => itemTag != normalized)
+          .toList(growable: false);
+      _items[index] = item.copyWith(tags: nextTags, updatedAt: now);
+      changed = true;
+    }
+    if (changed) {
+      _reapplySmartSortIfNeeded();
+      await _persist();
+    }
+    return changed;
+  }
+
+  Future<bool> isSmartSortEnabled() async {
+    return _sortMode == _TodoSortMode.smart;
+  }
+
   Future<TodoItem?> getNextTodo() async {
     final todos = await getTodos(const TodoFilter(statuses: [TodoStatus.open]));
     return todos.firstOrNull;
@@ -90,7 +119,9 @@ class LocalTodoSource {
       updatedAt: now,
     );
     _items.add(todo);
-    if (_sortMode != _TodoSortMode.defaultOrder) {
+    if (_sortMode == _TodoSortMode.smart) {
+      _applySmartSort();
+    } else if (_sortMode == _TodoSortMode.manual) {
       _manualOrder.add(todo.id);
     }
     await _persist();
@@ -150,6 +181,7 @@ class LocalTodoSource {
     if (result.isRecurring && patch.status.isSet) {
       _setRepeatCompletion(result, now, patch.status.value == TodoStatus.done);
     }
+    _reapplySmartSortIfNeeded();
     await _persist();
     return _projectForReference(result, now);
   }
@@ -158,6 +190,7 @@ class LocalTodoSource {
     _items.removeAt(_indexOf(todoId));
     _manualOrder.remove(todoId);
     _repeatCompletions.removeWhere((key, _) => key.split('|').first == todoId);
+    _reapplySmartSortIfNeeded();
     await _persist();
   }
 
@@ -173,6 +206,7 @@ class LocalTodoSource {
       final template = _items[_indexOf(todoId)];
       final now = clock.now();
       _setRepeatCompletion(template, now, true);
+      _reapplySmartSortIfNeeded();
       await _persist();
       return _projectForReference(template, now);
     }
@@ -194,6 +228,7 @@ class LocalTodoSource {
       final template = _items[_indexOf(todoId)];
       final now = clock.now();
       _setRepeatCompletion(template, now, false);
+      _reapplySmartSortIfNeeded();
       await _persist();
       return _projectForReference(template, now);
     }
@@ -220,6 +255,7 @@ class LocalTodoSource {
     _repeatCompletions.removeWhere(
       (key, _) => ids.contains(key.split('|').first),
     );
+    _reapplySmartSortIfNeeded();
     await _persist();
   }
 
@@ -246,12 +282,31 @@ class LocalTodoSource {
 
   Future<void> smartSortTodos() async {
     await _refreshCompletionState(clock.now());
+    _applySmartSort();
+    await _persist();
+  }
+
+  Future<void> disableSmartSort() async {
+    if (_sortMode != _TodoSortMode.smart) {
+      return;
+    }
+    _sortMode = _TodoSortMode.defaultOrder;
+    _manualOrder.clear();
+    await _persist();
+  }
+
+  void _applySmartSort() {
     final sorted = [..._items]..sort(compareTodosByPriority);
     _sortMode = _TodoSortMode.smart;
     _manualOrder
       ..clear()
       ..addAll(sorted.map((todo) => todo.id));
-    await _persist();
+  }
+
+  void _reapplySmartSortIfNeeded() {
+    if (_sortMode == _TodoSortMode.smart) {
+      _applySmartSort();
+    }
   }
 
   int _compareTodos(TodoItem a, TodoItem b) {
@@ -301,6 +356,7 @@ class LocalTodoSource {
       }
     }
     if (changed) {
+      _reapplySmartSortIfNeeded();
       await _persist();
     }
   }
@@ -503,11 +559,31 @@ int compareTodosByPriority(TodoItem a, TodoItem b) {
   if (statusCompare != 0) {
     return statusCompare;
   }
+  final urgencyCompare = _compareUrgency(a, b);
+  if (urgencyCompare != 0) {
+    return urgencyCompare;
+  }
   final priorityCompare = b.priority.compareTo(a.priority);
   if (priorityCompare != 0) {
     return priorityCompare;
   }
   return compareTodos(a, b);
+}
+
+int _compareUrgency(TodoItem a, TodoItem b) {
+  final aTime = a.sortAt;
+  final bTime = b.sortAt;
+  if (aTime != null && bTime != null) {
+    final timeCompare = aTime.compareTo(bTime);
+    if (timeCompare != 0) {
+      return timeCompare;
+    }
+  } else if (aTime != null) {
+    return -1;
+  } else if (bTime != null) {
+    return 1;
+  }
+  return 0;
 }
 
 PatchField<DateTime> _timeFieldForKind({

@@ -161,6 +161,70 @@ void main() {
       expect(await repos.todos.getTodoById(deadline.id), isNull);
     },
   );
+
+  test('smart sort mode survives repository recreation', () async {
+    final clock = MutableAppClock(DateTime(2026, 6, 12, 9));
+    var repos = await RepositoryFactory.persistent(clock);
+    final later = await repos.todos.createTodo(
+      TodoDraft(
+        title: '较晚',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 15, 9),
+        priority: 5,
+      ),
+    );
+    await repos.todos.smartSortTodos();
+
+    repos = await RepositoryFactory.persistent(clock);
+    expect(await repos.todos.isSmartSortEnabled(), isTrue);
+
+    final urgent = await repos.todos.createTodo(
+      TodoDraft(
+        title: '新增紧急',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 12, 10),
+        priority: 1,
+      ),
+    );
+
+    expect((await repos.todos.getTodos()).map((todo) => todo.id), [
+      urgent.id,
+      later.id,
+    ]);
+  });
+
+  test(
+    'manual reorder after smart sort survives repository recreation',
+    () async {
+      final clock = MutableAppClock(DateTime(2026, 6, 12, 9));
+      var repos = await RepositoryFactory.persistent(clock);
+      final urgent = await repos.todos.createTodo(
+        TodoDraft(
+          title: '紧急',
+          kind: TodoKind.deadline,
+          deadlineAt: DateTime(2026, 6, 12, 10),
+        ),
+      );
+      final later = await repos.todos.createTodo(
+        TodoDraft(
+          title: '稍后',
+          kind: TodoKind.deadline,
+          deadlineAt: DateTime(2026, 6, 15, 9),
+          priority: 5,
+        ),
+      );
+      await repos.todos.smartSortTodos();
+      await repos.todos.reorderTodos([later.id, urgent.id]);
+
+      repos = await RepositoryFactory.persistent(clock);
+
+      expect(await repos.todos.isSmartSortEnabled(), isFalse);
+      expect((await repos.todos.getTodos()).map((todo) => todo.id), [
+        later.id,
+        urgent.id,
+      ]);
+    },
+  );
 }
 
 class MutableAppClock extends AppClock {

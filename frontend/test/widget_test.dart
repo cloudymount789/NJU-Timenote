@@ -19,6 +19,20 @@ import 'package:nju_timenote/features/todo/todo_detail_page.dart';
 import 'package:nju_timenote/features/todo/todo_list_page.dart';
 
 void main() {
+  test('duration time helpers default to one hour and handle next day', () {
+    final start = DateTime(2026, 6, 12, 23, 30);
+
+    expect(defaultDurationEndForStart(start), DateTime(2026, 6, 13, 0, 30));
+    expect(
+      durationEndOnOrAfterStart(start, const TimeOfDay(hour: 0, minute: 15)),
+      DateTime(2026, 6, 13, 0, 15),
+    );
+    expect(
+      durationEndOnOrAfterStart(start, const TimeOfDay(hour: 23, minute: 45)),
+      DateTime(2026, 6, 12, 23, 45),
+    );
+  });
+
   testWidgets('starts on home and opens settings', (tester) async {
     await tester.pumpWidget(
       TimenoteApp(repositories: RepositoryFactory.local()),
@@ -83,6 +97,102 @@ void main() {
     expect(find.text('新待办'), findsOneWidget);
   });
 
+  testWidgets('todo detail top back prompts for unsaved edits and can save', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final todo = await repositories.todos.createTodo(
+      const TodoDraft(title: '原标题'),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('原标题'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '标题'), '新标题');
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('有未保存的修改'), findsOneWidget);
+    await tester.tap(find.text('保存后返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待办'), findsOneWidget);
+    expect((await repositories.todos.getTodoById(todo.id))?.title, '新标题');
+  });
+
+  testWidgets('todo detail system back prompts for unsaved edits', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await repositories.todos.createTodo(const TodoDraft(title: '系统返回待办'));
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('系统返回待办'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '内容'), '修改内容');
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('有未保存的修改'), findsOneWidget);
+  });
+
+  testWidgets('todo detail discard and cancel choices keep expected state', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final todo = await repositories.todos.createTodo(
+      const TodoDraft(title: '保留原值'),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保留原值'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '标题'), '取消修改');
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待办详情'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('不保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待办'), findsOneWidget);
+    expect((await repositories.todos.getTodoById(todo.id))?.title, '保留原值');
+  });
+
+  testWidgets('todo detail without edits returns without unsaved prompt', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await repositories.todos.createTodo(const TodoDraft(title: '无需提示'));
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('无需提示'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('有未保存的修改'), findsNothing);
+    expect(find.text('无需提示'), findsOneWidget);
+  });
+
   testWidgets(
     'batch cancel selected clears current selection without select all',
     (tester) async {
@@ -115,6 +225,122 @@ void main() {
       expect(find.byIcon(Icons.check_circle), findsNWidgets(2));
     },
   );
+
+  testWidgets('todo list smart sort state can be restored and toggled off', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await repositories.todos.createTodo(const TodoDraft(title: '普通'));
+    await repositories.todos.smartSortTodos();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('智能排序已开启'), findsOneWidget);
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('智能排序已开启'), findsOneWidget);
+
+    await tester.tap(find.text('智能排序已开启'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.isSmartSortEnabled(), isFalse);
+    expect(find.text('开启智能排序'), findsOneWidget);
+  });
+
+  testWidgets('manual reorder in smart sort mode asks before switching modes', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final first = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '紧急',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 12, 9),
+      ),
+    );
+    final second = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '稍后',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 13, 9),
+      ),
+    );
+    await repositories.todos.smartSortTodos();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('批量操作'));
+    await tester.pumpAndSettle();
+
+    final reorderable = tester.widget<ReorderableListView>(
+      find.byType(ReorderableListView),
+    );
+    reorderable.onReorderItem!(0, 2);
+    await tester.pumpAndSettle();
+
+    expect(find.text('关闭智能排序？'), findsOneWidget);
+    expect(find.text('当前处于智能排序模式，手动调整位置将会自动关闭智能排序。'), findsOneWidget);
+
+    await tester.tap(find.text('关闭并排序'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.isSmartSortEnabled(), isFalse);
+    expect((await repositories.todos.getTodos()).map((todo) => todo.id), [
+      second.id,
+      first.id,
+    ]);
+  });
+
+  testWidgets('canceling smart sort reorder keeps smart mode and order', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final first = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '紧急保留',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 12, 9),
+      ),
+    );
+    final second = await repositories.todos.createTodo(
+      TodoDraft(
+        title: '稍后保留',
+        kind: TodoKind.deadline,
+        deadlineAt: DateTime(2026, 6, 13, 9),
+      ),
+    );
+    await repositories.todos.smartSortTodos();
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('批量操作'));
+    await tester.pumpAndSettle();
+
+    final reorderable = tester.widget<ReorderableListView>(
+      find.byType(ReorderableListView),
+    );
+    reorderable.onReorderItem!(0, 2);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(await repositories.todos.isSmartSortEnabled(), isTrue);
+    expect((await repositories.todos.getTodos()).map((todo) => todo.id), [
+      first.id,
+      second.id,
+    ]);
+  });
 
   testWidgets('todo detail tag row opens tag selection with or without tags', (
     tester,
@@ -153,6 +379,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('选择 Tag'), findsOneWidget);
+  });
+
+  testWidgets('tag picker adds and deletes tags with confirmation', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final todo = await repositories.todos.createTodo(
+      const TodoDraft(title: '带 tag', tags: ['复习', '作业']),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(
+        repositories: repositories,
+        home: TodoDetailPage(isCreate: false, todoId: todo.id),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final tagPicker = find.byKey(const ValueKey('todo-tag-picker'));
+    await tester.ensureVisible(tagPicker);
+    await tester.tap(tagPicker);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('新增 tag'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '请输入 tag 名称'), '实验');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '确定'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('新增 Tag'), findsNothing);
+    expect(find.text('实验'), findsOneWidget);
+
+    await tester.longPress(find.widgetWithText(FilterChip, '复习'));
+    await tester.pumpAndSettle();
+    expect(find.text('删除 Tag'), findsOneWidget);
+
+    await tester.tap(find.text('删除'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('复习'), findsNothing);
+    expect((await repositories.todos.getTodoById(todo.id))?.tags, ['作业']);
   });
 
   testWidgets('home renders real next course todo and deadline data', (

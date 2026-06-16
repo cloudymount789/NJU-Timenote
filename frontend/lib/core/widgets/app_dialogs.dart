@@ -69,6 +69,78 @@ Future<bool?> showAppConfirmDialog({
   );
 }
 
+enum AppUnsavedAction { save, discard, cancel }
+
+Future<AppUnsavedAction?> showAppUnsavedChangesDialog({
+  required BuildContext context,
+}) {
+  return showDialog<AppUnsavedAction>(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: AppShadows.overlay,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '有未保存的修改',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '离开前要保存当前待办吗？',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.45,
+                    color: AppColors.muted,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(context).pop(AppUnsavedAction.cancel),
+                      child: const Text('取消'),
+                    ),
+                    TextButton(
+                      onPressed: () =>
+                          Navigator.of(context).pop(AppUnsavedAction.discard),
+                      child: const Text('不保存'),
+                    ),
+                    FilledButton(
+                      onPressed: () =>
+                          Navigator.of(context).pop(AppUnsavedAction.save),
+                      child: const Text('保存后返回'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class PickerShell extends StatelessWidget {
   const PickerShell({
     required this.title,

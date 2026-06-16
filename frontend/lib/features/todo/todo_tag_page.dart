@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app.dart';
 import '../../app/theme/app_colors.dart';
+import '../../core/widgets/app_dialogs.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_icon_button.dart';
 import '../../core/widgets/gradient_page_scaffold.dart';
@@ -42,13 +43,11 @@ class _TodoTagPageState extends State<TodoTagPage> {
   }
 
   Future<void> _addTag() async {
-    final controller = TextEditingController();
     final repo = AppScope.repositoriesOf(context).tags;
     final tag = await showDialog<String>(
       context: context,
-      builder: (context) => _AddTagDialog(controller: controller),
+      builder: (context) => const _AddTagDialog(),
     );
-    controller.dispose();
     if (tag == null || !mounted) {
       return;
     }
@@ -58,6 +57,26 @@ class _TodoTagPageState extends State<TodoTagPage> {
     }
     setState(() {
       _selected.add(saved);
+      _future = _load();
+    });
+  }
+
+  Future<void> _deleteTag(String tag) async {
+    final confirmed = await showAppConfirmDialog(
+      context: context,
+      title: '删除 Tag',
+      message: '删除后会从所有已有待办中移除“$tag”这个 tag，待办本身不会被删除。',
+      confirmText: '删除',
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+    await AppScope.repositoriesOf(context).tags.deleteTag(tag);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _selected.remove(tag);
       _future = _load();
     });
   }
@@ -115,14 +134,17 @@ class _TodoTagPageState extends State<TodoTagPage> {
                         runSpacing: 10,
                         children: tags
                             .map(
-                              (tag) => FilterChip(
-                                label: Text(tag),
-                                selected: _selected.contains(tag),
-                                onSelected: (_) => setState(() {
-                                  _selected.contains(tag)
-                                      ? _selected.remove(tag)
-                                      : _selected.add(tag);
-                                }),
+                              (tag) => GestureDetector(
+                                onLongPress: () => _deleteTag(tag),
+                                child: FilterChip(
+                                  label: Text(tag),
+                                  selected: _selected.contains(tag),
+                                  onSelected: (_) => setState(() {
+                                    _selected.contains(tag)
+                                        ? _selected.remove(tag)
+                                        : _selected.add(tag);
+                                  }),
+                                ),
                               ),
                             )
                             .toList(),
@@ -150,15 +172,27 @@ class _TodoTagPageState extends State<TodoTagPage> {
 }
 
 class _AddTagDialog extends StatefulWidget {
-  const _AddTagDialog({required this.controller});
-
-  final TextEditingController controller;
+  const _AddTagDialog();
 
   @override
   State<_AddTagDialog> createState() => _AddTagDialogState();
 }
 
 class _AddTagDialogState extends State<_AddTagDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -188,7 +222,7 @@ class _AddTagDialogState extends State<_AddTagDialog> {
               ),
               const SizedBox(height: 14),
               TextField(
-                controller: widget.controller,
+                controller: _controller,
                 autofocus: true,
                 decoration: const InputDecoration(hintText: '请输入 tag 名称'),
                 onChanged: (_) => setState(() {}),
@@ -203,10 +237,9 @@ class _AddTagDialogState extends State<_AddTagDialog> {
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed: widget.controller.text.trim().isEmpty
+                    onPressed: _controller.text.trim().isEmpty
                         ? null
-                        : () =>
-                              Navigator.of(context).pop(widget.controller.text),
+                        : () => Navigator.of(context).pop(_controller.text),
                     child: const Text('确定'),
                   ),
                 ],

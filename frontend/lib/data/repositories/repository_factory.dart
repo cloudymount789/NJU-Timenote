@@ -53,7 +53,7 @@ class RepositoryFactory {
         changes,
       ),
       todos: LocalTodoRepository(todoSource, changes),
-      tags: LocalTagRepository(tagSource),
+      tags: LocalTagRepository(tagSource, todoSource, changes),
       settings: LocalSettingsRepository(settingsSource, changes),
       recommendations: LocalRecommendationRepository(
         LocalRecommendationSource(todoSource),
@@ -149,6 +149,11 @@ class LocalTodoRepository implements TodoRepository {
   }
 
   @override
+  Future<bool> isSmartSortEnabled() {
+    return _source.isSmartSortEnabled();
+  }
+
+  @override
   Future<TodoItem> createTodo(TodoDraft draft) async {
     final todo = await _source.createTodo(draft);
     _changes.markChanged();
@@ -202,6 +207,12 @@ class LocalTodoRepository implements TodoRepository {
   }
 
   @override
+  Future<void> disableSmartSort() async {
+    await _source.disableSmartSort();
+    _changes.markChanged();
+  }
+
+  @override
   Future<void> batchDelete(List<String> todoIds) async {
     await _source.batchDelete(todoIds);
     _changes.markChanged();
@@ -218,9 +229,11 @@ class LocalTodoRepository implements TodoRepository {
 }
 
 class LocalTagRepository implements TagRepository {
-  const LocalTagRepository(this._source);
+  const LocalTagRepository(this._source, this._todos, this._changes);
 
   final LocalTagSource _source;
+  final LocalTodoSource _todos;
+  final DataRefreshNotifier _changes;
 
   @override
   Future<List<String>> getTags() {
@@ -230,6 +243,15 @@ class LocalTagRepository implements TagRepository {
   @override
   Future<String> addTag(String name) {
     return _source.addTag(name);
+  }
+
+  @override
+  Future<void> deleteTag(String name) async {
+    final removedTag = await _source.deleteTag(name);
+    final changedTodos = await _todos.removeTagFromTodos(name);
+    if (removedTag || changedTodos) {
+      _changes.markChanged();
+    }
   }
 }
 

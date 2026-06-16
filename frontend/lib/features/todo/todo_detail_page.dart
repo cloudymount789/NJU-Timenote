@@ -34,8 +34,10 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
   List<String> _tags = [];
   RepeatRule _repeatRule = RepeatRule.once;
   TodoStatus _status = TodoStatus.open;
+  _TodoEditSnapshot? _savedSnapshot;
   var _loading = true;
   var _didLoad = false;
+  var _leaving = false;
   String? _error;
 
   @override
@@ -50,6 +52,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
 
   Future<void> _load() async {
     if (widget.isCreate) {
+      _savedSnapshot = _currentSnapshot();
       setState(() => _loading = false);
       return;
     }
@@ -81,6 +84,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       _tags = [...todo.tags];
       _repeatRule = todo.repeatRule;
       _status = todo.status;
+      _savedSnapshot = _currentSnapshot();
       _loading = false;
     });
   }
@@ -93,20 +97,44 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  bool get _hasUnsavedChanges {
+    final saved = _savedSnapshot;
+    if (_loading || _error != null || saved == null) {
+      return false;
+    }
+    return _currentSnapshot() != saved;
+  }
+
+  _TodoEditSnapshot _currentSnapshot() {
+    return _TodoEditSnapshot(
+      title: _title.text.trim(),
+      content: _content.text,
+      location: _location.text,
+      kind: _kind,
+      startAt: _kind == TodoKind.duration ? _startAt : null,
+      endAt: _kind == TodoKind.duration ? _endAt : null,
+      deadlineAt: _kind == TodoKind.deadline ? _deadlineAt : null,
+      priority: _priority,
+      tags: _tags,
+      repeatRule: _repeatRule,
+      status: _status,
+    );
+  }
+
+  Future<bool> _save({bool leaveAfterSave = true}) async {
     final title = _title.text.trim();
     if (title.isEmpty) {
       _showMessage('标题不能为空');
-      return;
+      return false;
     }
     if (_kind == TodoKind.deadline && _deadlineAt == null) {
       _showMessage('请设置 DDL 时间');
-      return;
+      return false;
     }
     if (_kind == TodoKind.duration &&
         (_startAt == null || _endAt == null || !_startAt!.isBefore(_endAt!))) {
       _showMessage('请设置有效的起止时间');
-      return;
+      return false;
     }
     try {
       final repo = AppScope.repositoriesOf(context).todos;
@@ -147,12 +175,50 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
           ),
         );
       }
+      _savedSnapshot = _currentSnapshot();
       if (mounted) {
-        Navigator.of(context).pop(true);
+        if (leaveAfterSave) {
+          _forcePop(true);
+        } else {
+          setState(() {});
+        }
       }
+      return true;
     } catch (error) {
       _showMessage('保存失败：$error');
+      return false;
     }
+  }
+
+  Future<void> _requestLeave() async {
+    if (_leaving) {
+      return;
+    }
+    if (!_hasUnsavedChanges) {
+      _forcePop(false);
+      return;
+    }
+    final action = await showAppUnsavedChangesDialog(context: context);
+    if (!mounted) {
+      return;
+    }
+    switch (action) {
+      case AppUnsavedAction.save:
+        await _save();
+      case AppUnsavedAction.discard:
+        _forcePop(false);
+      case AppUnsavedAction.cancel:
+      case null:
+        break;
+    }
+  }
+
+  void _forcePop([bool result = false]) {
+    if (!mounted) {
+      return;
+    }
+    _leaving = true;
+    Navigator.of(context).pop(result);
   }
 
   Future<void> _delete() async {
@@ -169,16 +235,15 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
     try {
       await repo.deleteTodo(widget.todoId!);
       if (mounted) {
-        Navigator.of(context).pop(true);
+        _forcePop(true);
       }
     } catch (error) {
       _showMessage('删除失败：$error');
     }
   }
 
-  Future<void> _pickTime({
+  Future<DateTime?> _pickDateTime({
     required String label,
-    required ValueChanged<DateTime> onPicked,
     DateTime? initial,
   }) async {
     final seed = initial ?? AppScope.clockOf(context).now();
@@ -189,7 +254,7 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       lastDate: DateTime(2035),
     );
     if (date == null || !mounted) {
-      return;
+      return null;
     }
     final time = await showTimePicker(
       context: context,
@@ -197,9 +262,44 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
       helpText: label,
     );
     if (time == null) {
+      return null;
+    }
+    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  }
+
+  Future<void> _pickTime({
+    required String label,
+    required ValueChanged<DateTime> onPicked,
+    DateTime? initial,
+  }) async {
+    final value = await _pickDateTime(label: label, initial: initial);
+    if (value == null) {
       return;
     }
-    onPicked(DateTime(date.year, date.month, date.day, time.hour, time.minute));
+    onPicked(value);
+  }
+
+  Future<void> _pickOnceDurationStart() async {
+    final start = await _pickDateTime(label: '选择开始时间', initial: _startAt);
+    if (start == null || !mounted) {
+      return;
+    }
+    final defaultEnd = defaultDurationEndForStart(start);
+    setState(() {
+      _startAt = start;
+      _endAt = defaultEnd;
+    });
+    final endTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(defaultEnd),
+      helpText: '选择结束时间',
+    );
+    if (endTime == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _endAt = durationEndOnOrAfterStart(start, endTime);
+    });
   }
 
   Future<void> _pickRepeatDeadline() async {
@@ -409,153 +509,232 @@ class _TodoDetailPageState extends State<TodoDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GradientPageScaffold(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 20, 12, 32),
-        child: Column(
-          children: [
-            AppHeader(
-              title: widget.isCreate ? '新建待办' : '待办详情',
-              onBack: () => Navigator.of(context).maybePop(),
-              trailing: widget.isCreate
-                  ? null
-                  : AppIconButton(
-                      icon: Icons.delete_outline,
-                      tooltip: '删除待办',
-                      onPressed: _delete,
-                    ),
-            ),
-            const SizedBox(height: 18),
-            Expanded(
-              child: _loading
-                  ? const LoadingState()
-                  : _error != null
-                  ? ErrorState(message: _error!)
-                  : SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          _FormCard(
-                            children: [
-                              _Input(label: '标题', controller: _title),
-                              _Input(
-                                label: '内容',
-                                controller: _content,
-                                maxLines: 3,
-                              ),
-                              _Input(label: '地点', controller: _location),
-                              _PickerRow(
-                                label: '重复',
-                                value: _repeatLabel(_repeatRule),
-                                onTap: _openRepeatDialog,
-                              ),
-                              _KindSelector(value: _kind, onChanged: _setKind),
-                              if (_kind == TodoKind.duration) ...[
-                                _PickerRow(
-                                  label: _repeatRule == RepeatRule.once
-                                      ? '开始时间'
-                                      : '重复时段',
-                                  value: _repeatRule == RepeatRule.once
-                                      ? _formatDateTime(_startAt)
-                                      : _formatRepeatRange(
-                                          _repeatRule,
-                                          _startAt,
-                                          _endAt,
-                                        ),
-                                  onTap: _repeatRule == RepeatRule.once
-                                      ? () => _pickTime(
-                                          label: '选择开始时间',
-                                          initial: _startAt,
-                                          onPicked: (value) =>
-                                              setState(() => _startAt = value),
-                                        )
-                                      : _pickRepeatDuration,
+    return PopScope(
+      canPop: _leaving,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _requestLeave();
+        }
+      },
+      child: GradientPageScaffold(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 20, 12, 32),
+          child: Column(
+            children: [
+              AppHeader(
+                title: widget.isCreate ? '新建待办' : '待办详情',
+                onBack: _requestLeave,
+                trailing: widget.isCreate
+                    ? null
+                    : AppIconButton(
+                        icon: Icons.delete_outline,
+                        tooltip: '删除待办',
+                        onPressed: _delete,
+                      ),
+              ),
+              const SizedBox(height: 18),
+              Expanded(
+                child: _loading
+                    ? const LoadingState()
+                    : _error != null
+                    ? ErrorState(message: _error!)
+                    : SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _FormCard(
+                              children: [
+                                _Input(label: '标题', controller: _title),
+                                _Input(
+                                  label: '内容',
+                                  controller: _content,
+                                  maxLines: 3,
                                 ),
-                                if (_repeatRule == RepeatRule.once)
+                                _Input(label: '地点', controller: _location),
+                                _PickerRow(
+                                  label: '重复',
+                                  value: _repeatLabel(_repeatRule),
+                                  onTap: _openRepeatDialog,
+                                ),
+                                _KindSelector(
+                                  value: _kind,
+                                  onChanged: _setKind,
+                                ),
+                                if (_kind == TodoKind.duration) ...[
                                   _PickerRow(
-                                    label: '结束时间',
-                                    value: _formatDateTime(_endAt),
-                                    onTap: () => _pickTime(
-                                      label: '选择结束时间',
-                                      initial: _endAt,
-                                      onPicked: (value) =>
-                                          setState(() => _endAt = value),
+                                    label: _repeatRule == RepeatRule.once
+                                        ? '开始时间'
+                                        : '重复时段',
+                                    value: _repeatRule == RepeatRule.once
+                                        ? _formatDateTime(_startAt)
+                                        : _formatRepeatRange(
+                                            _repeatRule,
+                                            _startAt,
+                                            _endAt,
+                                          ),
+                                    onTap: _repeatRule == RepeatRule.once
+                                        ? _pickOnceDurationStart
+                                        : _pickRepeatDuration,
+                                  ),
+                                  if (_repeatRule == RepeatRule.once)
+                                    _PickerRow(
+                                      label: '结束时间',
+                                      value: _formatDateTime(_endAt),
+                                      onTap: () => _pickTime(
+                                        label: '选择结束时间',
+                                        initial: _endAt,
+                                        onPicked: (value) =>
+                                            setState(() => _endAt = value),
+                                      ),
                                     ),
+                                ],
+                                if (_kind == TodoKind.deadline)
+                                  _PickerRow(
+                                    label: 'DDL',
+                                    value: _repeatRule == RepeatRule.once
+                                        ? _formatDateTime(_deadlineAt)
+                                        : _formatRepeatDeadline(
+                                            _repeatRule,
+                                            _deadlineAt,
+                                          ),
+                                    onTap: _repeatRule == RepeatRule.once
+                                        ? () => _pickTime(
+                                            label: '选择 DDL',
+                                            initial: _deadlineAt,
+                                            onPicked: (value) => setState(
+                                              () => _deadlineAt = value,
+                                            ),
+                                          )
+                                        : _pickRepeatDeadline,
+                                  ),
+                                _PriorityInput(
+                                  value: _priority,
+                                  onChanged: (value) =>
+                                      setState(() => _priority = value),
+                                ),
+                                _PickerRow(
+                                  label: 'Tag',
+                                  value: _tags.isEmpty
+                                      ? '未选择'
+                                      : _tags.join('、'),
+                                  onTap: _openTags,
+                                  key: const ValueKey('todo-tag-picker'),
+                                ),
+                                if (!widget.isCreate)
+                                  _StatusToggleRow(
+                                    kind: _kind,
+                                    status: _status,
+                                    onChanged: (status) =>
+                                        setState(() => _status = status),
                                   ),
                               ],
-                              if (_kind == TodoKind.deadline)
-                                _PickerRow(
-                                  label: 'DDL',
-                                  value: _repeatRule == RepeatRule.once
-                                      ? _formatDateTime(_deadlineAt)
-                                      : _formatRepeatDeadline(
-                                          _repeatRule,
-                                          _deadlineAt,
-                                        ),
-                                  onTap: _repeatRule == RepeatRule.once
-                                      ? () => _pickTime(
-                                          label: '选择 DDL',
-                                          initial: _deadlineAt,
-                                          onPicked: (value) => setState(
-                                            () => _deadlineAt = value,
-                                          ),
-                                        )
-                                      : _pickRepeatDeadline,
-                                ),
-                              _PriorityInput(
-                                value: _priority,
-                                onChanged: (value) =>
-                                    setState(() => _priority = value),
-                              ),
-                              _PickerRow(
-                                label: 'Tag',
-                                value: _tags.isEmpty ? '未选择' : _tags.join('、'),
-                                onTap: _openTags,
-                                key: const ValueKey('todo-tag-picker'),
-                              ),
-                              if (!widget.isCreate)
-                                _StatusToggleRow(
-                                  kind: _kind,
-                                  status: _status,
-                                  onChanged: (status) =>
-                                      setState(() => _status = status),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: FilledButton(
-                              onPressed: _save,
-                              child: const Text('保存'),
                             ),
-                          ),
-                          if (!widget.isCreate) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 20),
                             SizedBox(
                               width: double.infinity,
                               height: 52,
-                              child: OutlinedButton(
-                                onPressed: _delete,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.danger,
-                                  side: const BorderSide(
-                                    color: Color(0xFFFCA5A5),
-                                  ),
-                                ),
-                                child: const Text('删除待办'),
+                              child: FilledButton(
+                                onPressed: _save,
+                                child: const Text('保存'),
                               ),
                             ),
+                            if (!widget.isCreate) ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 52,
+                                child: OutlinedButton(
+                                  onPressed: _delete,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.danger,
+                                    side: const BorderSide(
+                                      color: Color(0xFFFCA5A5),
+                                    ),
+                                  ),
+                                  child: const Text('删除待办'),
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _TodoEditSnapshot {
+  _TodoEditSnapshot({
+    required this.title,
+    required this.content,
+    required this.location,
+    required this.kind,
+    required this.startAt,
+    required this.endAt,
+    required this.deadlineAt,
+    required this.priority,
+    required List<String> tags,
+    required this.repeatRule,
+    required this.status,
+  }) : tags = List.unmodifiable([...tags]..sort());
+
+  final String title;
+  final String content;
+  final String location;
+  final TodoKind kind;
+  final DateTime? startAt;
+  final DateTime? endAt;
+  final DateTime? deadlineAt;
+  final double priority;
+  final List<String> tags;
+  final RepeatRule repeatRule;
+  final TodoStatus status;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _TodoEditSnapshot &&
+        title == other.title &&
+        content == other.content &&
+        location == other.location &&
+        kind == other.kind &&
+        startAt == other.startAt &&
+        endAt == other.endAt &&
+        deadlineAt == other.deadlineAt &&
+        priority == other.priority &&
+        _listEquals(tags, other.tags) &&
+        repeatRule == other.repeatRule &&
+        status == other.status;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    title,
+    content,
+    location,
+    kind,
+    startAt,
+    endAt,
+    deadlineAt,
+    priority,
+    Object.hashAll(tags),
+    repeatRule,
+    status,
+  );
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var index = 0; index < a.length; index += 1) {
+    if (a[index] != b[index]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 class _FormCard extends StatelessWidget {
@@ -792,4 +971,22 @@ String _weekdayName(int weekday) {
 DateTime _dateForWeekday(DateTime reference, int weekday) {
   final date = DateTime(reference.year, reference.month, reference.day);
   return date.add(Duration(days: weekday - reference.weekday));
+}
+
+DateTime defaultDurationEndForStart(DateTime start) {
+  return start.add(const Duration(hours: 1));
+}
+
+DateTime durationEndOnOrAfterStart(DateTime start, TimeOfDay endTime) {
+  var end = DateTime(
+    start.year,
+    start.month,
+    start.day,
+    endTime.hour,
+    endTime.minute,
+  );
+  if (!end.isAfter(start)) {
+    end = end.add(const Duration(days: 1));
+  }
+  return end;
 }
