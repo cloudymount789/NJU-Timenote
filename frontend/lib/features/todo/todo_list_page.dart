@@ -198,6 +198,18 @@ class _TodoListPageState extends State<TodoListPage> {
 
   Future<void> _reorderVisible(int oldIndex, int newIndex) async {
     final repo = AppScope.repositoriesOf(context).todos;
+    if (_isSmartSortEnabled) {
+      final confirmed = await showAppConfirmDialog(
+        context: context,
+        title: '关闭智能排序？',
+        message: '当前处于智能排序模式，手动调整位置将会自动关闭智能排序。',
+        confirmText: '关闭并排序',
+      );
+      if (confirmed != true || !mounted) {
+        await _refresh();
+        return;
+      }
+    }
     final todos = await (_future ?? Future.value(const <TodoItem>[]));
     final ordered = [...todos];
     var targetIndex = newIndex;

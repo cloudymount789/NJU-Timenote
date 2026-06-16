@@ -97,6 +97,102 @@ void main() {
     expect(find.text('新待办'), findsOneWidget);
   });
 
+  testWidgets('todo detail top back prompts for unsaved edits and can save', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final todo = await repositories.todos.createTodo(
+      const TodoDraft(title: '原标题'),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('原标题'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '标题'), '新标题');
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('有未保存的修改'), findsOneWidget);
+    await tester.tap(find.text('保存后返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待办'), findsOneWidget);
+    expect((await repositories.todos.getTodoById(todo.id))?.title, '新标题');
+  });
+
+  testWidgets('todo detail system back prompts for unsaved edits', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await repositories.todos.createTodo(const TodoDraft(title: '系统返回待办'));
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('系统返回待办'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '内容'), '修改内容');
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(find.text('有未保存的修改'), findsOneWidget);
+  });
+
+  testWidgets('todo detail discard and cancel choices keep expected state', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    final todo = await repositories.todos.createTodo(
+      const TodoDraft(title: '保留原值'),
+    );
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保留原值'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '标题'), '取消修改');
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待办详情'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('不保存'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('待办'), findsOneWidget);
+    expect((await repositories.todos.getTodoById(todo.id))?.title, '保留原值');
+  });
+
+  testWidgets('todo detail without edits returns without unsaved prompt', (
+    tester,
+  ) async {
+    final repositories = RepositoryFactory.local();
+    await repositories.todos.createTodo(const TodoDraft(title: '无需提示'));
+
+    await tester.pumpWidget(
+      _ScopedTestApp(repositories: repositories, home: const TodoListPage()),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('无需提示'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('有未保存的修改'), findsNothing);
+    expect(find.text('无需提示'), findsOneWidget);
+  });
+
   testWidgets(
     'batch cancel selected clears current selection without select all',
     (tester) async {
